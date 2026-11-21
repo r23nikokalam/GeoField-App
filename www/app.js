@@ -240,13 +240,13 @@ function saveActiveSection() {
 function collectForm() {
   saveActiveSection();
   if (!activeProjectId) throw new Error("Select or create a project before saving an observation.");
+  const existing = editingId ? rows.find(record => record.id === editingId) : null;
   const item = {
     id: editingId || (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
       ? globalThis.crypto.randomUUID()
       : (() => { throw new Error("Secure random ID generation is unavailable on this device."); })()),
     projectId: existing?.projectId || activeProjectId
   };
-  const existing = editingId ? rows.find(record => record.id === editingId) : null;
   if (existing?._legacy) item._legacy = existing._legacy;
   for (const key of fieldNames) item[key] = String(draft?.[key] ?? "");
   return item;
@@ -374,7 +374,15 @@ $("records").addEventListener("click", async event => {
   if (del && confirm("Delete this observation?")) {
     const nextRows = rows.filter(record => record.id !== del.dataset.delete);
     try {
-      await persist(nextRows);
+      const nextWorkspace = validateWorkspace({
+        ...workspace,
+        observations: validateRecords(nextRows, normaliseRecord),
+        samples: workspace.samples.map(sample =>
+          sample.observationId === del.dataset.delete ? { ...sample, observationId: "" } : sample)
+      });
+      await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+      workspace = nextWorkspace;
+      rows = nextWorkspace.observations;
       render();
       if (editingId === del.dataset.delete) resetForm();
     } catch (error) {
@@ -392,7 +400,6 @@ $("exportXlsx").addEventListener("click", async () => {
     return;
   }
   try {
-    const projectRows = rows.filter(record => record.projectId === activeProjectId);
     const data = [fieldNames, ...projectRows.map(record => fieldNames.map(key => record[key] || ""))];
     const sheet = XLSX.utils.aoa_to_sheet(data);
     sheet["!cols"] = fieldNames.map(() => ({ wch: 20 }));
