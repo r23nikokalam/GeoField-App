@@ -336,6 +336,7 @@ async function saveFile(blob, filename) {
 $("activeProject").addEventListener("change", () => {
   if (!storageReady) return;
   activeProjectId = $("activeProject").value;
+  renderSamples();
   render();
   resetForm();
 });
@@ -420,16 +421,17 @@ $("fieldsGrid").addEventListener("input", updateProgress);
 $("entryForm").addEventListener("submit", async event => {
   event.preventDefault();
   if (!storageReady) return;
-  const item = collectForm();
-  if (!fieldNames.some(key => item[key])) {
-    alert("Please complete at least one field.");
-    return;
-  }
-  const nextRows = editingId
-    ? rows.map(record => record.id === editingId ? item : record)
-    : [...rows, item];
   try {
+    const item = collectForm();
+    if (!fieldNames.some(key => item[key])) {
+      alert("Please complete at least one field.");
+      return;
+    }
+    const nextRows = editingId
+      ? rows.map(record => record.id === editingId ? item : record)
+      : [...rows, item];
     await persist(nextRows);
+    renderSamples();
     render();
     resetForm();
   } catch (error) {
@@ -458,6 +460,7 @@ $("records").addEventListener("click", async event => {
       await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
       workspace = nextWorkspace;
       rows = nextWorkspace.observations;
+      renderSamples();
       render();
       if (editingId === del.dataset.delete) resetForm();
     } catch (error) {
