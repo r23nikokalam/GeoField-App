@@ -76,3 +76,28 @@ test("rejects duplicate record IDs and oversized datasets", () => {
     normalise
   ), /10,000/i);
 });
+
+
+test("cleans up a matching plaintext copy after an interrupted successful migration", async () => {
+  globalThis.localStorage = new MemoryStorage();
+  const original = JSON.stringify([{ id: "a1", value: "granite" }]);
+  localStorage.setItem("geofield_records", original);
+  const plugin = {
+    async load() { return { found: true, plaintext: original }; }
+  };
+  const store = new SecureRecordStore({ native: true, plugin });
+  assert.deepEqual(await store.load(normalise), [{ id: "a1", value: "granite" }]);
+  assert.equal(localStorage.getItem("geofield_records"), null);
+});
+
+test("locks and retains both copies when encrypted and legacy records conflict", async () => {
+  globalThis.localStorage = new MemoryStorage();
+  const original = JSON.stringify([{ id: "a1", value: "granite" }]);
+  localStorage.setItem("geofield_records", original);
+  const plugin = {
+    async load() { return { found: true, plaintext: JSON.stringify([{ id: "a1", value: "basalt" }]) }; }
+  };
+  const store = new SecureRecordStore({ native: true, plugin });
+  await assert.rejects(() => store.load(normalise), /both copies were retained/i);
+  assert.equal(localStorage.getItem("geofield_records"), original);
+});
