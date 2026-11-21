@@ -124,8 +124,9 @@ function escapeHtml(value) {
 }
 
 async function persist(nextRows = rows) {
-  await recordStore.save(nextRows);
-  rows = nextRows;
+  const validated = validateRecords(nextRows, normaliseRecord);
+  await recordStore.save(validated);
+  rows = validated;
 }
 
 function setSection(sectionName) {
