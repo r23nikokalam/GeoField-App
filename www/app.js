@@ -38,7 +38,7 @@ function normaliseRecord(source, index = 0) {
   }
 
   const legacy = source;
-  const rawId = String(legacy.id || ("restored-" + Date.now() + "-" + index));
+  const rawId = String(legacy.id || ("restored-" + index));
   if (rawId.length > MAX_ID_LENGTH) throw new Error("A record ID is too long.");
 
   const item = { id: rawId };
