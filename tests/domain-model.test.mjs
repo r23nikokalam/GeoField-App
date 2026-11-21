@@ -59,3 +59,17 @@ test("rejects unknown workspace schema versions", () => {
     schemaVersion: 99, projects: [], observations: [], samples: []
   }), /unsupported workspace schema/i);
 });
+
+
+test("preserves project timestamps when a workspace is normalized", async () => {
+  const { createWorkspace } = await import("../www/domain-model.js");
+  const original = createProject({
+    id: "stable-project",
+    name: "North Ridge",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-02-01T00:00:00.000Z"
+  });
+  const workspace = createWorkspace({ projects: [original] });
+  assert.equal(workspace.projects[0].createdAt, original.createdAt);
+  assert.equal(workspace.projects[0].updatedAt, original.updatedAt);
+});
