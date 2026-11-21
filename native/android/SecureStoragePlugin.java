@@ -137,6 +137,22 @@ public class SecureStoragePlugin extends Plugin {
         AtomicFile file = getDataFile();
         FileOutputStream output = null;
         try {
+            // Refuse to replace an existing encrypted file unless its current
+            // authentication tag can be verified with the existing Keystore key.
+            File baseFile = file.getBaseFile();
+            File backupFile = new File(baseFile.getPath() + ".bak");
+            if (baseFile.exists() || backupFile.exists()) {
+                try (FileInputStream previousInput = file.openRead();
+                     ByteArrayOutputStream previousBytes = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = previousInput.read(buffer)) != -1) {
+                        previousBytes.write(buffer, 0, count);
+                    }
+                    decrypt(previousBytes.toByteArray());
+                }
+            }
+
             byte[] encrypted = encrypt(plaintext);
             output = file.startWrite();
             output.write(encrypted);
