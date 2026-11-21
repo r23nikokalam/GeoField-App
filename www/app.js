@@ -380,6 +380,13 @@ $("editProject").addEventListener("click", () => {
   $("editProjectClient").value = project.client;
   $("editProjectArea").value = project.area;
   $("editProjectDescription").value = project.description;
+  $("editCoordinateSystem").value = project.coordinateSystem || "Unknown";
+  $("editDatum").value = project.datum || "";
+  $("editUtmZone").value = project.utmZone || "";
+  $("editHemisphere").value = project.hemisphere || "";
+  $("editHorizontalUnit").value = project.horizontalUnit || "";
+  $("editVerticalDatum").value = project.verticalDatum || "";
+  $("editElevationUnit").value = project.elevationUnit || "";
   $("projectEditForm").hidden = false;
 });
 $("cancelProjectEdit").addEventListener("click", () => {
@@ -399,6 +406,13 @@ $("projectEditForm").addEventListener("submit", async event => {
       client: $("editProjectClient").value,
       area: $("editProjectArea").value,
       description: $("editProjectDescription").value,
+      coordinateSystem: $("editCoordinateSystem").value,
+      datum: $("editDatum").value,
+      utmZone: $("editUtmZone").value,
+      hemisphere: $("editHemisphere").value,
+      horizontalUnit: $("editHorizontalUnit").value,
+      verticalDatum: $("editVerticalDatum").value,
+      elevationUnit: $("editElevationUnit").value,
       updatedAt: new Date().toISOString()
     });
     const nextWorkspace = validateWorkspace({
