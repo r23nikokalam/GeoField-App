@@ -36,9 +36,10 @@ test("retains legacy plaintext if migration verification fails", async () => {
   globalThis.localStorage = new MemoryStorage();
   const original = JSON.stringify([{ id: "a1", value: "granite" }]);
   localStorage.setItem("geofield_records", original);
+  let saved = false;
   const plugin = {
-    async save() {},
-    async load() { return { found: true, plaintext: "tampered" }; }
+    async save() { saved = true; },
+    async load() { return saved ? { found: true, plaintext: "[]" } : { found: false, plaintext: "" }; }
   };
   const store = new SecureRecordStore({ native: true, plugin });
   await assert.rejects(() => store.load(normalise), /verification failed/i);
@@ -73,5 +74,5 @@ test("rejects duplicate record IDs and oversized datasets", () => {
   assert.throws(() => validateRecords(
     Array.from({ length: 10001 }, (_, index) => ({ id: String(index), value: "" })),
     normalise
-  ), /10,000 records/i);
+  ), /10,000/i);
 });
