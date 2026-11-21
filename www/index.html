@@ -28,9 +28,9 @@ h2{font-size:15px;margin:0 0 11px}
 .field{display:flex;align-items:center;gap:9px;min-height:42px;border-bottom:1px solid #e8f0f0;padding:4px 0}
 .field:last-child{border-bottom:0}
 .field label{flex:0 0 34%;font-size:12px;font-weight:bold;overflow-wrap:anywhere;direction:ltr;text-align:left}
-.field input,.field textarea{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:13px Arial,Helvetica,sans-serif;background:#fff;color:var(--ink);direction:ltr;text-align:left}
+.field input,.field textarea,.field select{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:13px Arial,Helvetica,sans-serif;background:#fff;color:var(--ink);direction:ltr;text-align:left}
 .field textarea{min-height:66px;resize:vertical}
-.field input:focus,.field textarea:focus{outline:2px solid #a8dfe3;border-color:var(--teal)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:2px solid #a8dfe3;border-color:var(--teal)}
 .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
 button{border:0;border-radius:8px;padding:10px 12px;font:bold 12px Arial,Helvetica,sans-serif;cursor:pointer;background:var(--teal);color:white;white-space:nowrap}
 button.secondary{background:#e5f1f2;color:var(--teal-dark);border:1px solid #c8e1e3}
@@ -65,6 +65,20 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
 <header><h1>GeoField</h1><p>Geological Field Observation Notebook</p></header>
 <div id="storageStatus" class="storage-status" role="status" aria-live="polite" hidden></div>
 <main>
+<section class="panel" aria-labelledby="projectWorkspaceTitle">
+  <div class="topline"><h2 id="projectWorkspaceTitle">Project Workspace</h2></div>
+  <div class="field">
+    <label for="activeProject">Active Project</label>
+    <select id="activeProject" aria-label="Active project"></select>
+  </div>
+  <div class="field">
+    <label for="projectName">New Project</label>
+    <input id="projectName" type="text" maxlength="120" placeholder="Enter project name" autocomplete="off">
+  </div>
+  <div class="actions">
+    <button type="button" id="addProject">Create Project</button>
+  </div>
+</section>
 <section class="panel">
   <h2>Select Data Section</h2>
   <div class="section-list" id="sectionList" aria-label="Data sections">
