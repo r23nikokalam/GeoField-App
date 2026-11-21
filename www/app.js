@@ -3,6 +3,7 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { SecureRecordStore, validateRecords } from "./secure-record-store.js";
+import { createProject, migrateLegacyRecords, validateWorkspace } from "./domain-model.js";
 
 const SecureStorage = registerPlugin("SecureStorage");
 const recordStore = new SecureRecordStore({
@@ -22,6 +23,8 @@ const sections = [
 const fieldNames = sections.flatMap(section => section.fields);
 const $ = id => document.getElementById(id);
 let rows = [];
+let workspace = null;
+let activeProjectId = null;
 let editingId = null;
 let activeSection = null;
 let draft = null;
@@ -44,7 +47,7 @@ function normaliseRecord(source, index = 0) {
   const rawId = String(legacy.id || ("restored-" + index));
   if (!rawId.trim() || rawId.length > MAX_ID_LENGTH) throw new Error("A record ID is invalid or too long.");
 
-  const item = { id: rawId };
+  const item = { id: rawId, projectId: typeof legacy.projectId === "string" ? legacy.projectId : "" };
   for (const key of fieldNames) {
     const value = legacy[key] ?? "";
     if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
@@ -114,13 +117,33 @@ function setControlsEnabled(enabled) {
   });
 }
 
+function renderProjects() {
+  const select = $("activeProject");
+  if (!select || !workspace) return;
+  select.innerHTML = workspace.projects.map(project =>
+    '<option value="' + escapeHtml(project.id) + '">' + escapeHtml(project.name) + '</option>'
+  ).join("");
+  if (activeProjectId && workspace.projects.some(project => project.id === activeProjectId)) {
+    select.value = activeProjectId;
+  } else {
+    activeProjectId = workspace.projects[0]?.id || null;
+    select.value = activeProjectId || "";
+  }
+  const hasProject = Boolean(activeProjectId);
+  $("projectName").disabled = !storageReady;
+  $("addProject").disabled = !storageReady;
+  $("activeProject").disabled = !storageReady || !hasProject;
+  $("saveBtn").disabled = !storageReady || !hasProject;
+}
+
 function render() {
-  $("count").textContent = rows.length.toLocaleString("en-US") + " records";
-  if (!rows.length) {
-    $("records").innerHTML = '<div class="empty">No observations have been recorded yet.</div>';
+  const projectRows = rows.filter(record => record.projectId === activeProjectId);
+  $("count").textContent = projectRows.length.toLocaleString("en-US") + " records";
+  if (!projectRows.length) {
+    $("records").innerHTML = '<div class="empty">No observations in this project yet.</div>';
     return;
   }
-  $("records").innerHTML = rows.slice().reverse().map(record => {
+  $("records").innerHTML = projectRows.slice().reverse().map(record => {
     const title = record.WPT_NO || record.Profile_No || record.Lithology || record.Id || "Saved observation";
     const summaryKeys = ["Date","Geologist","Lithology","X_UTM","Y_UTM","Z_UTM","Mineral","Describe"];
     const summary = summaryKeys.filter(key => record[key]).slice(0, 5)
@@ -146,7 +169,12 @@ function escapeHtml(value) {
 
 async function persist(nextRows = rows) {
   const validated = validateRecords(nextRows, normaliseRecord);
-  await recordStore.save(validated);
+  const nextWorkspace = validateWorkspace({
+    ...workspace,
+    observations: validated
+  });
+  await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+  workspace = nextWorkspace;
   rows = validated;
 }
 
@@ -211,7 +239,13 @@ function saveActiveSection() {
 
 function collectForm() {
   saveActiveSection();
-  const item = { id: editingId || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) };
+  if (!activeProjectId) throw new Error("Select or create a project before saving an observation.");
+  const item = {
+    id: editingId || (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : (() => { throw new Error("Secure random ID generation is unavailable on this device."); })()),
+    projectId: existing?.projectId || activeProjectId
+  };
   const existing = editingId ? rows.find(record => record.id === editingId) : null;
   if (existing?._legacy) item._legacy = existing._legacy;
   for (const key of fieldNames) item[key] = String(draft?.[key] ?? "");
@@ -238,6 +272,8 @@ function beginEdit(id) {
   resetForm();
   draft = { ...record };
   editingId = id;
+  activeProjectId = record.projectId;
+  renderProjects();
   $("saveBtn").textContent = "Save Changes";
   $("cancelEdit").classList.remove("hidden");
   setSection("Project");
@@ -265,6 +301,37 @@ async function saveFile(blob, filename) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
+
+$("activeProject").addEventListener("change", () => {
+  if (!storageReady) return;
+  activeProjectId = $("activeProject").value;
+  render();
+  resetForm();
+});
+$("addProject").addEventListener("click", async () => {
+  if (!storageReady) return;
+  const name = $("projectName").value.trim();
+  if (!name) {
+    alert("Enter a project name.");
+    return;
+  }
+  try {
+    const project = createProject({ name });
+    const nextWorkspace = validateWorkspace({
+      ...workspace,
+      projects: [...workspace.projects, project]
+    });
+    await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+    workspace = nextWorkspace;
+    activeProjectId = project.id;
+    $("projectName").value = "";
+    renderProjects();
+    render();
+    resetForm();
+  } catch (error) {
+    alert("The project could not be created: " + error.message);
+  }
+});
 
 $("sectionList").addEventListener("click", event => {
   if (!storageReady) return;
@@ -319,12 +386,14 @@ $("records").addEventListener("click", async event => {
 
 $("exportXlsx").addEventListener("click", async () => {
   if (!storageReady) return;
-  if (!rows.length) {
-    alert("There are no records to export yet.");
+  const projectRows = rows.filter(record => record.projectId === activeProjectId);
+  if (!projectRows.length) {
+    alert("There are no records in this project to export yet.");
     return;
   }
   try {
-    const data = [fieldNames, ...rows.map(record => fieldNames.map(key => record[key] || ""))];
+    const projectRows = rows.filter(record => record.projectId === activeProjectId);
+    const data = [fieldNames, ...projectRows.map(record => fieldNames.map(key => record[key] || ""))];
     const sheet = XLSX.utils.aoa_to_sheet(data);
     sheet["!cols"] = fieldNames.map(() => ({ wch: 20 }));
     const book = XLSX.utils.book_new();
@@ -342,7 +411,7 @@ $("exportXlsx").addEventListener("click", async () => {
 $("backup").addEventListener("click", async () => {
   if (!storageReady) return;
   try {
-    const blob = new Blob([JSON.stringify({ app: "GeoField", version: 3, records: rows }, null, 2)], {
+    const blob = new Blob([JSON.stringify({ app: "GeoField", version: 4, workspace }, null, 2)], {
       type: "application/json"
     });
     await saveFile(blob, "GeoField-Backup.json");
@@ -361,10 +430,24 @@ $("restoreFile").addEventListener("change", async event => {
   try {
     if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 10 MB size limit.");
     const parsed = JSON.parse(await file.text());
-    const incoming = Array.isArray(parsed) ? parsed : parsed?.records;
-    const validated = validateRecords(incoming, normaliseRecord);
-    if (!confirm("Restore " + validated.length + " records? Current data will be replaced with the data in this file.")) return;
-    await persist(validated);
+    let incomingWorkspace;
+    if (parsed && typeof parsed === "object" && parsed.workspace) {
+      incomingWorkspace = validateWorkspace(parsed.workspace);
+    } else if (parsed && typeof parsed === "object" &&
+               Object.prototype.hasOwnProperty.call(parsed, "schemaVersion")) {
+      incomingWorkspace = validateWorkspace(parsed);
+    } else {
+      const incoming = Array.isArray(parsed) ? parsed : parsed?.records;
+      incomingWorkspace = migrateLegacyRecords(validateRecords(incoming, normaliseRecord));
+    }
+    if (!confirm("Restore " + incomingWorkspace.observations.length +
+        " observations across " + incomingWorkspace.projects.length +
+        " projects? Current data will be replaced with the backup.")) return;
+    await recordStore.saveWorkspace(incomingWorkspace, validateWorkspace);
+    workspace = incomingWorkspace;
+    rows = workspace.observations;
+    activeProjectId = workspace.projects[0]?.id || null;
+    renderProjects();
     render();
     resetForm();
     alert("Backup restored successfully.");
@@ -376,10 +459,19 @@ $("restoreFile").addEventListener("change", async event => {
 });
 
 $("clearAll").addEventListener("click", async () => {
-  if (!storageReady || !rows.length) return;
-  if (confirm("Permanently delete all observations from this device?")) {
+  const projectRows = rows.filter(record => record.projectId === activeProjectId);
+  if (!storageReady || !projectRows.length) return;
+  if (confirm("Permanently delete all observations in this project?")) {
     try {
-      await persist([]);
+      const retained = rows.filter(record => record.projectId !== activeProjectId);
+      const nextWorkspace = validateWorkspace({
+        ...workspace,
+        observations: retained,
+        samples: workspace.samples.filter(sample => sample.projectId !== activeProjectId)
+      });
+      await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+      workspace = nextWorkspace;
+      rows = retained;
       render();
       resetForm();
     } catch (error) {
@@ -393,10 +485,23 @@ async function initializeStorage() {
   setControlsEnabled(false);
   const status = $("storageStatus");
   try {
-    rows = await recordStore.load(normaliseRecord);
+    workspace = await recordStore.loadWorkspace({
+      validateWorkspace,
+      migrateLegacyRecords,
+      normaliseRecord
+    });
+    if (!workspace.projects.length) {
+      const initialProject = createProject({ name: "Field Project", code: "FIELD-001" });
+      workspace = validateWorkspace({ ...workspace, projects: [initialProject] });
+      await recordStore.saveWorkspace(workspace, validateWorkspace);
+    }
+    rows = workspace.observations;
+    activeProjectId = workspace.projects[0]?.id || null;
     storageReady = true;
+    renderProjects();
     render();
     setControlsEnabled(true);
+    renderProjects();
   } catch (error) {
     console.error("GeoField secure storage initialization failed:", error);
     status.textContent = "Storage initialization failed. Editing is locked to protect your existing data. Do not clear app data or reinstall the app. " + error.message;
