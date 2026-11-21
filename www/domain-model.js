@@ -139,7 +139,7 @@ export function validateWorkspace(value) {
   const normalizedSamples = samples.map(sample => createSample(sample));
   for (const project of normalizedProjects) {
     if (project.coordinateSystem === "UTM" && project.utmZone &&
-        (!/^\\d{1,2}$/.test(project.utmZone) || Number(project.utmZone) < 1 || Number(project.utmZone) > 60)) {
+        (!/^\d{1,2}$/.test(project.utmZone) || Number(project.utmZone) < 1 || Number(project.utmZone) > 60)) {
       throw new Error("UTM zone must be a number from 1 to 60.");
     }
     if (project.hemisphere && !["N", "S"].includes(project.hemisphere)) {
