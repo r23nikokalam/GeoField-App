@@ -3,54 +3,98 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#174a3a">
+<meta name="theme-color" content="#087f91">
 <title>GeoField | دفترچه صحرایی</title>
 <style>
-:root{--green:#174a3a;--green2:#22664f;--bg:#f3f6f4;--line:#dce5df;--ink:#20352c}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif}
-header{background:var(--green);color:white;padding:22px 18px 20px}header h1{margin:0 0 6px;font-size:24px}header p{margin:0;color:#d7e9df;font-size:13px}
-main{max-width:760px;margin:auto;padding:16px}
-.panel{background:white;border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:15px;box-shadow:0 3px 12px #163c2910}
-h2{font-size:17px;margin:0 0 14px}.field{margin-bottom:12px}label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
-input,textarea{width:100%;border:1px solid #cbd8d0;border-radius:9px;padding:11px;font:14px Tahoma;background:#fff;color:var(--ink)}
-textarea{min-height:78px;resize:vertical}input:focus,textarea:focus{outline:2px solid #a9cbb7;border-color:var(--green2)}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:9px;padding:11px 14px;font: bold 13px Tahoma;cursor:pointer;background:var(--green);color:white}
-button.secondary{background:#e8efea;color:var(--green)}button.danger{background:#a33b35}button:disabled{opacity:.5}
-.record{border:1px solid var(--line);border-radius:11px;padding:12px;margin:10px 0;background:#fff}
-.record h3{font-size:15px;margin:0 0 8px}.record p{font-size:13px;margin:5px 0;line-height:1.7;overflow-wrap:anywhere}
-.meta{color:#61756a;font-size:11px}.empty{text-align:center;color:#718078;padding:20px 5px;font-size:13px}
-.topline{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.small{font-size:11px;color:#6c7e73}.hidden{display:none!important}
+:root{--teal:#087f91;--teal-dark:#075c6b;--teal-soft:#dff4f4;--bg:#eaf8f8;--line:#c7e4e6;--ink:#173b43;--muted:#607f84;--white:#fff;--danger:#b83d42}
+*{box-sizing:border-box}
+html{min-height:100%;background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:Tahoma,Arial,sans-serif;background:linear-gradient(145deg,#e9f8f8,#d9f1f2)}
+.watermark{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.075}
+header,main,footer{position:relative;z-index:1}
+header{background:linear-gradient(115deg,var(--teal-dark),var(--teal));color:white;padding:17px 16px 15px;box-shadow:0 3px 14px #064d5b24}
+header h1{margin:0;font-size:23px;letter-spacing:.3px}
+header p{margin:6px 0 0;color:#d9f6f6;font-size:12px}
+main{width:min(100%,850px);margin:auto;padding:13px 12px 20px}
+.panel{background:#ffffffed;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:12px;box-shadow:0 4px 16px #075c6b0d;backdrop-filter:blur(2px)}
+h2{font-size:15px;margin:0 0 11px}
+.section-list{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:thin}
+.section-btn{flex:0 0 auto;min-width:105px;background:#e5f3f4;color:var(--teal-dark);border:1px solid #c6e3e5;padding:10px 12px}
+.section-btn.active{background:var(--teal);color:white;border-color:var(--teal)}
+#fieldsPanel[hidden]{display:none}
+.fields-grid{display:flex;flex-direction:column;gap:7px}
+.field{display:flex;align-items:center;gap:9px;min-height:42px;border-bottom:1px solid #e8f0f0;padding:4px 0}
+.field:last-child{border-bottom:0}
+.field label{flex:0 0 34%;font-size:12px;font-weight:bold;overflow-wrap:anywhere;direction:ltr;text-align:right}
+.field input,.field textarea{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:13px Tahoma;background:#fff;color:var(--ink);direction:auto}
+.field textarea{min-height:66px;resize:vertical}
+.field input:focus,.field textarea:focus{outline:2px solid #a8dfe3;border-color:var(--teal)}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+button{border:0;border-radius:8px;padding:10px 12px;font: bold 12px Tahoma;cursor:pointer;background:var(--teal);color:white;white-space:nowrap}
+button.secondary{background:#e5f1f2;color:var(--teal-dark);border:1px solid #c8e1e3}
+button.danger{background:var(--danger)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.small{font-size:11px;color:var(--muted)}
+.record{border:1px solid var(--line);border-radius:10px;padding:10px;margin:9px 0;background:#fff}
+.record h3{font-size:13px;margin:0 0 6px;overflow-wrap:anywhere}
+.record p{font-size:11px;margin:4px 0;line-height:1.7;overflow-wrap:anywhere}
+.record .actions{margin-top:8px}
+.empty{text-align:center;color:#718b8f;padding:18px 5px;font-size:12px}
+.hidden{display:none!important}
+footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direction:ltr}
+#restoreFile{display:none}
+@media(min-width:620px){main{padding:18px}.panel{padding:17px}.field label{flex-basis:27%}.fields-grid{gap:8px}}
 </style>
 </head>
 <body>
-<header><h1>GeoField</h1><p>دفترچه ثبت مشاهدات زمین‌شناسی — قابل استفاده بدون اینترنت</p></header>
+<svg class="watermark" viewBox="0 0 900 1100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+  <g fill="none" stroke="#087f91" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="#087f91" stroke-width="3" d="M510 170 L566 194 588 238 628 258 616 298 649 332 630 374 651 415 620 453 607 503 566 526 547 574 502 596 473 640 430 631 398 662 355 642 324 610 282 601 260 560 226 532 239 492 213 453 232 416 219 377 251 344 270 306 306 290 326 249 370 232 396 195 438 205 472 178Z"/>
+    <g transform="translate(140 690) rotate(-27)">
+      <path d="M0 0 L210 -8"/>
+      <path d="M160 -8 L205 -48 L250 -42 L226 -2 L250 35 L208 42 L175 8"/>
+      <path d="M0 0 L-8 14"/>
+    </g>
+  </g>
+</svg>
+<header><h1>GeoField</h1><p>دفترچه ثبت مشاهدات زمین‌شناسی</p></header>
 <main>
 <section class="panel">
-<h2 id="formTitle">ثبت مشاهده جدید</h2>
-<form id="entryForm">
-<div class="field"><label for="rockColor">۱. رنگ سنگ *</label><input id="rockColor" required placeholder="مثلاً خاکستری روشن"></div>
-<div class="field"><label for="unitName">۲. نام واحد *</label><input id="unitName" required placeholder="نام سازند یا واحد سنگی"></div>
-<div class="field"><label for="minerals">۳. کانی‌های موجود</label><textarea id="minerals" placeholder="کانی‌های قابل تشخیص"></textarea></div>
-<div class="field"><label for="alterations">۴. دگرسانی‌های آن</label><textarea id="alterations" placeholder="نوع و شدت دگرسانی"></textarea></div>
-<div class="field"><label for="sample">۵. نمونه برداشت‌شده</label><input id="sample" placeholder="کد یا شماره نمونه"></div>
-<div class="field"><label for="notes">۶. توضیحات بیشتر</label><textarea id="notes" placeholder="توضیحات صحرایی و نکات تکمیلی"></textarea></div>
-<div class="field"><label for="analysis">۷. نوع آنالیز نمونه</label><input id="analysis" placeholder="مثلاً XRF، ICP، مقطع نازک"></div>
-<div class="actions"><button type="submit" id="saveBtn">ذخیره مشاهده</button><button type="button" class="secondary hidden" id="cancelEdit">لغو ویرایش</button></div>
-</form>
+  <h2>انتخاب بخش اطلاعات</h2>
+  <div class="section-list" id="sectionList" aria-label="بخش‌های فرم">
+    <button type="button" class="section-btn" data-section="Project">Project</button>
+    <button type="button" class="section-btn" data-section="Coordinate">Coordinate</button>
+    <button type="button" class="section-btn" data-section="Geology">Geology</button>
+    <button type="button" class="section-btn" data-section="Layer Structure">Layer Structure</button>
+    <button type="button" class="section-btn" data-section="Fault">Fault</button>
+    <button type="button" class="section-btn" data-section="Sample">Sample</button>
+    <button type="button" class="section-btn" data-section="Describe">Describe</button>
+  </div>
+</section>
+<section class="panel" id="fieldsPanel" hidden>
+  <div class="topline"><h2 id="sectionTitle">Project</h2><span class="small" id="fieldProgress"></span></div>
+  <form id="entryForm">
+    <div class="fields-grid" id="fieldsGrid"></div>
+    <div class="actions">
+      <button type="submit" id="saveBtn">ذخیره مشاهده</button>
+      <button type="button" class="secondary hidden" id="cancelEdit">لغو ویرایش</button>
+    </div>
+  </form>
 </section>
 <section class="panel">
-<div class="topline"><h2>مشاهدات ثبت‌شده</h2><span class="small" id="count">۰ رکورد</span></div>
-<div class="actions">
-<button type="button" id="exportXlsx">خروجی Excel (XLSX)</button>
-<button type="button" class="secondary" id="backup">پشتیبان JSON</button>
-<button type="button" class="secondary" id="restoreBtn">بازیابی JSON</button>
-<input id="restoreFile" type="file" accept="application/json,.json" class="hidden">
-<button type="button" class="danger" id="clearAll">حذف همه</button>
-</div>
-<div id="records"><div class="empty">هنوز مشاهده‌ای ثبت نشده است.</div></div>
+  <div class="topline"><h2>مشاهدات ثبت‌شده</h2><span class="small" id="count">۰ رکورد</span></div>
+  <div class="actions">
+    <button type="button" id="exportXlsx">خروجی Excel (XLSX)</button>
+    <button type="button" class="secondary" id="backup">پشتیبان JSON</button>
+    <button type="button" class="secondary" id="restoreBtn">بازیابی JSON</button>
+    <input id="restoreFile" type="file" accept="application/json,.json">
+    <button type="button" class="danger" id="clearAll">حذف همه</button>
+  </div>
+  <div id="records"><div class="empty">هنوز مشاهده‌ای ثبت نشده است.</div></div>
 </section>
-<p class="small" style="text-align:center">اطلاعات روی همین دستگاه ذخیره می‌شود. برای جلوگیری از ازدست‌رفتن داده‌ها، پشتیبان JSON بگیرید.</p>
 </main>
+<footer>Created by Engineer Roohollah Nikokalam</footer>
 <script type="module" src="./bundle.js"></script>
-</body></html>
+</body>
+</html>
