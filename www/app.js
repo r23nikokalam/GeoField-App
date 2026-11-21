@@ -56,6 +56,19 @@ function normaliseRecord(source, index = 0) {
   }
 
   const legacyKeys = ["rockColor","unitName","minerals","alterations","sample","notes","analysis"];
+  if (legacy._legacy !== undefined && legacy._legacy !== null &&
+      (typeof legacy._legacy !== "object" || Array.isArray(legacy._legacy))) {
+    throw new Error("The preserved legacy data has an invalid structure.");
+  }
+  const legacyText = key => {
+    const value = legacy[key] ?? "";
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+      throw new Error("A legacy field contains an unsupported value.");
+    }
+    const textValue = String(value);
+    if (textValue.length > MAX_FIELD_LENGTH) throw new Error("A legacy field exceeds the allowed length.");
+    return textValue;
+  };
   if (legacyKeys.some(key => Object.prototype.hasOwnProperty.call(legacy, key))) {
     const prior = legacy._legacy && typeof legacy._legacy === "object" ? legacy._legacy : legacy;
     const preserved = {};
@@ -68,13 +81,13 @@ function normaliseRecord(source, index = 0) {
       if (preserved[key].length > MAX_FIELD_LENGTH) throw new Error("A legacy field exceeds the allowed length.");
     }
     item._legacy = preserved;
-    if (!item.Lithology) item.Lithology = String(legacy.unitName ?? "");
-    if (!item.colour) item.colour = String(legacy.rockColor ?? "");
-    if (!item.Mineral) item.Mineral = String(legacy.minerals ?? "");
-    if (!item.Altration) item.Altration = String(legacy.alterations ?? "");
-    if (!item.Index_mine) item.Index_mine = String(legacy.sample ?? "");
-    if (!item.Anlz_Typ) item.Anlz_Typ = String(legacy.analysis ?? "");
-    if (!item.Describe) item.Describe = String(legacy.notes ?? "");
+    if (!item.Lithology) item.Lithology = legacyText("unitName");
+    if (!item.colour) item.colour = legacyText("rockColor");
+    if (!item.Mineral) item.Mineral = legacyText("minerals");
+    if (!item.Altration) item.Altration = legacyText("alterations");
+    if (!item.Index_mine) item.Index_mine = legacyText("sample");
+    if (!item.Anlz_Typ) item.Anlz_Typ = legacyText("analysis");
+    if (!item.Describe) item.Describe = legacyText("notes");
   } else if (legacy._legacy && typeof legacy._legacy === "object" && !Array.isArray(legacy._legacy)) {
     item._legacy = {};
     for (const key of legacyKeys) {
