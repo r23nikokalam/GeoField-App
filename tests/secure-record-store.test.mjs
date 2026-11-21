@@ -101,3 +101,43 @@ test("locks and retains both copies when encrypted and legacy records conflict",
   await assert.rejects(() => store.load(normalise), /both copies were retained/i);
   assert.equal(localStorage.getItem("geofield_records"), original);
 });
+
+
+test("migrates encrypted legacy arrays to a verified versioned workspace", async () => {
+  globalThis.localStorage = new MemoryStorage();
+  const { migrateLegacyRecords, validateWorkspace } = await import("../www/domain-model.js");
+  const legacy = [{ id: "obs-1", WPT_NO: "A-1", Lithology: "Granite" }];
+  let encrypted = JSON.stringify(legacy);
+  const plugin = {
+    async load() { return { found: true, plaintext: encrypted }; },
+    async save({ plaintext }) { encrypted = plaintext; }
+  };
+  const store = new SecureRecordStore({ native: true, plugin });
+  const workspace = await store.loadWorkspace({
+    validateWorkspace,
+    migrateLegacyRecords,
+    normaliseRecord: (record, index) => ({ id: String(record.id || index), ...record })
+  });
+  assert.equal(workspace.schemaVersion, 1);
+  assert.equal(workspace.observations[0].projectId, "project-imported-legacy");
+  assert.equal(workspace.observations[0].Lithology, "Granite");
+  assert.equal(JSON.parse(encrypted).schemaVersion, 1);
+});
+
+test("retains local legacy data when workspace encryption verification fails", async () => {
+  globalThis.localStorage = new MemoryStorage();
+  const { migrateLegacyRecords, validateWorkspace } = await import("../www/domain-model.js");
+  const original = JSON.stringify([{ id: "obs-1", WPT_NO: "A-1" }]);
+  localStorage.setItem("geofield_records", original);
+  const plugin = {
+    async load() { return { found: false, plaintext: "" }; },
+    async save() {},
+  };
+  const store = new SecureRecordStore({ native: true, plugin });
+  await assert.rejects(() => store.loadWorkspace({
+    validateWorkspace,
+    migrateLegacyRecords,
+    normaliseRecord: (record, index) => ({ id: String(record.id || index), ...record })
+  }), /verification failed/i);
+  assert.equal(localStorage.getItem("geofield_records"), original);
+});
