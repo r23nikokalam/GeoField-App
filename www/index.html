@@ -16,7 +16,7 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:Arial,Helvetica,sans
 header,main,footer{position:relative;z-index:1}
 header{background:linear-gradient(115deg,var(--teal-dark),var(--teal));color:white;padding:17px 16px 15px;box-shadow:0 3px 14px #064d5b24}
 header h1{margin:0;font-size:calc(23px * var(--font-scale));letter-spacing:.3px}
-header p{margin:6px 0 0;color:#d9f6f6;font-size:12px}
+header p{margin:6px 0 0;color:#d9f6f6;font-size:calc(12px * var(--font-scale))}
 main{width:min(100%,850px);margin:auto;padding:13px 12px 20px}
 .panel{background:#ffffffed;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:12px;box-shadow:0 4px 16px #075c6b0d;backdrop-filter:blur(2px)}
 h2{font-size:calc(15px * var(--font-scale));margin:0 0 11px}
@@ -42,7 +42,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .record h3{font-size:calc(13px * var(--font-scale));margin:0 0 6px;overflow-wrap:anywhere}
 .record p{font-size:calc(11px * var(--font-scale));margin:4px 0;line-height:1.7;overflow-wrap:anywhere}
 .record .actions{margin-top:8px}
-.empty{text-align:center;color:#718b8f;padding:18px 5px;font-size:12px}
+.empty{text-align:center;color:#718b8f;padding:18px 5px;font-size:calc(12px * var(--font-scale))}
 .storage-status{width:min(100%,850px);margin:10px auto 0;padding:10px 13px;border:1px solid #9edbdc;border-radius:10px;background:#e3f8f7;color:#075d68;font-size:calc(12px * var(--font-scale));line-height:1.6;direction:ltr;text-align:left}
 .storage-status.storage-error{border-color:#d99b9b;background:#fff0f0;color:#8c2429}
 .hidden{display:none!important}
