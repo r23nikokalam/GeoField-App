@@ -39,7 +39,18 @@ export class SecureRecordStore {
       const secure = await this.plugin.load();
       if (secure.found) {
         const parsed = JSON.parse(secure.plaintext);
-        return validateRecords(parsed, normaliseRecord);
+        const secureRecords = validateRecords(parsed, normaliseRecord);
+        const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacyRaw !== null) {
+          const legacyParsed = JSON.parse(legacyRaw);
+          const legacyRecords = Array.isArray(legacyParsed) ? legacyParsed : legacyParsed?.records;
+          const validatedLegacy = validateRecords(legacyRecords, normaliseRecord);
+          if (JSON.stringify(validatedLegacy) !== JSON.stringify(secureRecords)) {
+            throw new Error("Encrypted and legacy records differ. Both copies were retained; editing is locked to prevent data loss.");
+          }
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
+        return secureRecords;
       }
 
       // One-time migration from the previous localStorage format. The legacy
