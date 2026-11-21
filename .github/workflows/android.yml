@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master, feature/secure-storage-2026-11 ]
+    branches: [ main, master, feature/secure-storage-2026-11, feature/fieldwork-suite-2026-11 ]
   pull_request:
     branches: [ main ]
 permissions:
