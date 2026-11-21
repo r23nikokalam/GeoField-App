@@ -34,6 +34,8 @@ let activeSection = null;
 let draft = null;
 let storageReady = false;
 let editingSampleId = null;
+let backupPasswordResolver = null;
+let backupPasswordNeedsConfirmation = false;
 
 const MAX_BACKUP_BYTES = 15 * 1024 * 1024;
 const MAX_FIELD_LENGTH = 20000;
@@ -115,6 +117,58 @@ function normaliseRecord(source, index = 0) {
   }
   return item;
 }
+
+function finishBackupPassword(value) {
+  const resolve = backupPasswordResolver;
+  backupPasswordResolver = null;
+  const dialog = $("backupPasswordDialog");
+  if (dialog.open && typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+  $("backupPasswordForm").reset();
+  resolve?.(value);
+}
+
+function requestBackupPassword(confirmPassword = false) {
+  return new Promise(resolve => {
+    if (backupPasswordResolver) finishBackupPassword(null);
+    backupPasswordResolver = resolve;
+    backupPasswordNeedsConfirmation = confirmPassword;
+    $("backupPasswordTitle").textContent = confirmPassword ? "Create Encrypted Backup" : "Restore Encrypted Backup";
+    $("backupPasswordHint").textContent = confirmPassword
+      ? "Choose a password between 10 and 256 characters. GeoField does not store it; losing it makes this backup unrecoverable."
+      : "Enter the password used when this backup was created.";
+    $("backupPasswordConfirmField").hidden = !confirmPassword;
+    $("backupPasswordConfirm").required = confirmPassword;
+    $("backupPasswordInput").autocomplete = confirmPassword ? "new-password" : "current-password";
+    $("backupPasswordError").textContent = "";
+    $("backupPasswordInput").value = "";
+    $("backupPasswordConfirm").value = "";
+    const dialog = $("backupPasswordDialog");
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+    $("backupPasswordInput").focus();
+  });
+}
+
+$("backupPasswordForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const password = $("backupPasswordInput").value;
+  if (password.length < 10 || password.length > 256) {
+    $("backupPasswordError").textContent = "Password must contain 10 to 256 characters.";
+    return;
+  }
+  if (backupPasswordNeedsConfirmation && password !== $("backupPasswordConfirm").value) {
+    $("backupPasswordError").textContent = "The passwords do not match.";
+    $("backupPasswordConfirm").focus();
+    return;
+  }
+  finishBackupPassword(password);
+});
+$("backupPasswordCancel").addEventListener("click", () => finishBackupPassword(null));
+$("backupPasswordDialog").addEventListener("cancel", event => {
+  event.preventDefault();
+  finishBackupPassword(null);
+});
 
 const PREFERENCES_KEY = "geofield_ui_preferences";
 
@@ -786,14 +840,8 @@ $("exportPdf").addEventListener("click", async () => {
 
 $("backup").addEventListener("click", async () => {
   if (!storageReady) return;
-  const password = prompt("Create a backup password (at least 10 characters). This password is not stored. If you lose it, the backup cannot be recovered.");
+  const password = await requestBackupPassword(true);
   if (password === null) return;
-  const confirmation = prompt("Re-enter the backup password.");
-  if (confirmation === null) return;
-  if (password !== confirmation) {
-    alert("The passwords do not match. No backup was created.");
-    return;
-  }
   try {
     const payload = { app: "GeoField", version: 4, workspace };
     const encrypted = await encryptBackupPayload(payload, password);
@@ -815,7 +863,7 @@ $("restoreFile").addEventListener("change", async event => {
     if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 15 MB size limit.");
     let parsed = JSON.parse(await file.text());
     if (isEncryptedBackup(parsed)) {
-      const password = prompt("Enter the password for this GeoField backup.");
+      const password = await requestBackupPassword(false);
       if (password === null) return;
       parsed = await decryptBackupPayload(parsed, password);
     } else if (!confirm("This is a legacy unencrypted backup. Continue restoring it? New backups created by GeoField are password-encrypted.")) {
