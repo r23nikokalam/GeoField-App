@@ -28,7 +28,6 @@ let draft = null;
 let storageReady = false;
 
 const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
-const MAX_RECORDS = 10000;
 const MAX_FIELD_LENGTH = 20000;
 const MAX_ID_LENGTH = 128;
 
@@ -375,7 +374,7 @@ async function initializeStorage() {
     rows = await recordStore.load(normaliseRecord);
     storageReady = true;
     status.textContent = Capacitor.isNativePlatform()
-      ? "Device storage protection: AES-256-GCM encryption with an Android Keystore key."
+      ? "Device storage protection: AES-256-GCM encryption with an Android Keystore key. Exported JSON backups are unencrypted; keep them private."
       : "Browser preview mode: records use browser-local storage. Install the Android app for encrypted device storage.";
     status.classList.remove("storage-error");
     status.hidden = false;
