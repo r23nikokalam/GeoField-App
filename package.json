@@ -5,7 +5,7 @@
   "description": "Offline geological field notebook for Android",
   "scripts": {
     "build": "esbuild www/app.js --bundle --format=esm --outfile=www/bundle.js",
-    "test:storage": "node --test tests/secure-record-store.test.mjs"
+    "test:storage": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.10",
