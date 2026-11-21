@@ -46,7 +46,7 @@ export function createProject(input = {}) {
 }
 
 export function createSample(input = {}) {
-  const id = cleanText(input.id, "Sample ID", 128) || crypto.randomUUID();
+  const id = cleanText(input.id, "Sample ID", 128) || createId();
   const code = cleanText(input.code, "Sample code", 80);
   if (!code) throw new Error("Sample code is required.");
   return {
