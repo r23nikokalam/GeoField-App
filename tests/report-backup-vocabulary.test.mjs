@@ -1,11 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { webcrypto } from "node:crypto";
 import { encryptBackupPayload, decryptBackupPayload, isEncryptedBackup } from "../www/backup-crypto.js";
 import { buildProjectReport } from "../www/report-pdf.js";
 import { vocabularyForField } from "../www/geology-vocabulary.js";
 
-globalThis.crypto = webcrypto;
+assert.ok(globalThis.crypto?.subtle, "Web Crypto API must be available in Node.js tests");
 
 test("password backup round-trips and uses authenticated AES-256-GCM envelope", async () => {
   const payload = { app: "GeoField", version: 4, workspace: { schemaVersion: 1, observations: [{ id: "a", Lithology: "Granite" }] } };
