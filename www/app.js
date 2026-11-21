@@ -3,7 +3,7 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { SecureRecordStore, validateRecords } from "./secure-record-store.js";
-import { createProject, migrateLegacyRecords, validateWorkspace } from "./domain-model.js";
+import { createProject, createSample, migrateLegacyRecords, validateWorkspace } from "./domain-model.js";
 
 const SecureStorage = registerPlugin("SecureStorage");
 const recordStore = new SecureRecordStore({
@@ -134,6 +134,36 @@ function renderProjects() {
   $("addProject").disabled = !storageReady;
   $("activeProject").disabled = !storageReady || !hasProject;
   $("saveBtn").disabled = !storageReady || !hasProject;
+}
+
+function renderSamples() {
+  const form = $("sampleForm");
+  const list = $("sampleList");
+  const projectSamples = (workspace?.samples || []).filter(sample => sample.projectId === activeProjectId);
+  const projectRows = rows.filter(record => record.projectId === activeProjectId);
+  $("sampleObservation").innerHTML = '<option value="">Not linked</option>' + projectRows.map(record => {
+    const label = record.WPT_NO || record.Profile_No || record.Lithology || record.id;
+    return '<option value="' + escapeHtml(record.id) + '">' + escapeHtml(label) + '</option>';
+  }).join("");
+  form.querySelectorAll("input,select,textarea,button").forEach(element => {
+    element.disabled = !storageReady || !activeProjectId;
+  });
+  if (!projectSamples.length) {
+    list.innerHTML = '<div class="empty">No samples registered in this project.</div>';
+    return;
+  }
+  list.innerHTML = projectSamples.slice().reverse().map(sample => {
+    const linked = sample.observationId
+      ? projectRows.find(record => record.id === sample.observationId)
+      : null;
+    return '<article class="record"><h3>' + escapeHtml(sample.code) +
+      ' <span class="small">— ' + escapeHtml(sample.sampleType || "Sample") + '</span></h3>' +
+      (sample.material ? '<p><b>Material:</b> ' + escapeHtml(sample.material) + '</p>' : '') +
+      (linked ? '<p><b>Observation:</b> ' + escapeHtml(linked.WPT_NO || linked.Profile_No || linked.id) + '</p>' : '') +
+      (sample.notes ? '<p>' + escapeHtml(sample.notes) + '</p>' : '') +
+      '<div class="actions"><button type="button" class="danger" data-delete-sample="' +
+      escapeHtml(sample.id) + '">Delete Sample</button></div></article>';
+  }).join("");
 }
 
 function render() {
@@ -274,6 +304,7 @@ function beginEdit(id) {
   editingId = id;
   activeProjectId = record.projectId;
   renderProjects();
+  renderSamples();
   $("saveBtn").textContent = "Save Changes";
   $("cancelEdit").classList.remove("hidden");
   setSection("Project");
@@ -326,10 +357,54 @@ $("addProject").addEventListener("click", async () => {
     activeProjectId = project.id;
     $("projectName").value = "";
     renderProjects();
+    renderSamples();
     render();
     resetForm();
   } catch (error) {
     alert("The project could not be created: " + error.message);
+  }
+});
+
+$("sampleForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!storageReady || !activeProjectId) return;
+  try {
+    const sample = createSample({
+      code: $("sampleCode").value,
+      sampleType: $("sampleType").value,
+      material: $("sampleMaterial").value,
+      observationId: $("sampleObservation").value,
+      notes: $("sampleNotes").value,
+      projectId: activeProjectId,
+      collectedAt: new Date().toISOString()
+    });
+    const nextWorkspace = validateWorkspace({
+      ...workspace,
+      samples: [...workspace.samples, sample]
+    });
+    await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+    workspace = nextWorkspace;
+    $("sampleForm").reset();
+    renderSamples();
+  } catch (error) {
+    alert("The sample could not be saved: " + error.message);
+  }
+});
+
+$("sampleList").addEventListener("click", async event => {
+  const button = event.target.closest("[data-delete-sample]");
+  if (!button || !storageReady) return;
+  if (!confirm("Delete this sample record?")) return;
+  try {
+    const nextWorkspace = validateWorkspace({
+      ...workspace,
+      samples: workspace.samples.filter(sample => sample.id !== button.dataset.deleteSample)
+    });
+    await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+    workspace = nextWorkspace;
+    renderSamples();
+  } catch (error) {
+    alert("The sample could not be deleted: " + error.message);
   }
 });
 
@@ -455,6 +530,7 @@ $("restoreFile").addEventListener("change", async event => {
     rows = workspace.observations;
     activeProjectId = workspace.projects[0]?.id || null;
     renderProjects();
+    renderSamples();
     render();
     resetForm();
     alert("Backup restored successfully.");
@@ -479,6 +555,7 @@ $("clearAll").addEventListener("click", async () => {
       await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
       workspace = nextWorkspace;
       rows = retained;
+      renderSamples();
       render();
       resetForm();
     } catch (error) {
@@ -506,9 +583,11 @@ async function initializeStorage() {
     activeProjectId = workspace.projects[0]?.id || null;
     storageReady = true;
     renderProjects();
+    renderSamples();
     render();
     setControlsEnabled(true);
     renderProjects();
+    renderSamples();
   } catch (error) {
     console.error("GeoField secure storage initialization failed:", error);
     status.textContent = "Storage initialization failed. Editing is locked to protect your existing data. Do not clear app data or reinstall the app. " + error.message;
