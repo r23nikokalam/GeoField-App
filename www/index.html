@@ -115,6 +115,10 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
   <div class="topline"><h2 id="sectionTitle">Project</h2><span class="small" id="fieldProgress"></span></div>
   <form id="entryForm">
     <div class="fields-grid" id="fieldsGrid"></div>
+    <div id="gpsControls" class="actions" hidden>
+      <button type="button" id="gpsCapture">Capture GPS Position</button>
+      <span id="gpsStatus" class="small" role="status" aria-live="polite"></span>
+    </div>
     <div class="actions">
       <button type="submit" id="saveBtn">Save Observation</button>
       <button type="button" class="secondary hidden" id="cancelEdit">Cancel Editing</button>
@@ -152,12 +156,17 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
       <label for="sampleNotes">Notes</label>
       <textarea id="sampleNotes" rows="2" maxlength="2000"></textarea>
     </div>
-    <div class="actions"><button type="submit">Save Sample</button></div>
+    <div class="actions"><button type="submit" id="saveSampleBtn">Save Sample</button><button type="button" id="cancelSampleEdit" class="secondary hidden">Cancel</button></div>
   </form>
   <div id="sampleList"><div class="empty">No samples registered in this project.</div></div>
 </section>
 <section class="panel">
   <div class="topline"><h2>Saved Observations</h2><span class="small" id="count">0 records</span></div>
+  <div class="field"><label for="recordSearch">Search Records</label><input id="recordSearch" type="search" placeholder="Search all observation fields"></div>
+  <div class="field"><label for="filterGeologist">Geologist</label><input id="filterGeologist" type="search" placeholder="Filter by geologist"></div>
+  <div class="field"><label for="filterLithology">Lithology</label><input id="filterLithology" type="search" placeholder="Filter by lithology"></div>
+  <div class="field"><label for="filterDateFrom">Date From</label><input id="filterDateFrom" type="date"></div>
+  <div class="field"><label for="filterDateTo">Date To</label><input id="filterDateTo" type="date"></div>
   <div class="actions">
     <button type="button" id="exportXlsx">Export Excel (XLSX)</button>
     <button type="button" class="secondary" id="backup">Backup JSON</button>
