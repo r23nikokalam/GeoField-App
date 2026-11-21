@@ -36,7 +36,7 @@ fs.writeFileSync(path.join(packagePath, "SecureStoragePlugin.java"), plugin);
 
 if (!activity.includes("registerPlugin(SecureStoragePlugin.class)")) {
   if (!activity.includes("import android.os.Bundle;")) {
-    activity = activity.replace(/^(package\s+[\w.]+;\s*)/m, "$1\nimport android.os.Bundle;");
+    activity = activity.replace(/^(package\s+[\w.]+;)/m, "$1\nimport android.os.Bundle;");
   }
   const classOpen = /public\s+class\s+MainActivity\s+extends\s+BridgeActivity\s*\{/;
   if (!classOpen.test(activity)) throw new Error("Unexpected MainActivity structure; plugin registration was not applied.");
