@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#087f91">
-<title>GeoField | دفترچه صحرایی</title>
+<title>GeoField | Field Notebook</title>
 <style>
-:root{--teal:#087f91;--teal-dark:#075c6b;--teal-soft:#dff4f4;--bg:#eaf8f8;--line:#c7e4e6;--ink:#173b43;--muted:#607f84;--white:#fff;--danger:#b83d42}
+:root{--teal:#0796a5;--teal-dark:#056b78;--teal-soft:#d9f5f5;--bg:#effbfb;--line:#c8e9e9;--ink:#153f45;--muted:#587b80;--white:#fff;--danger:#b83d42}
 *{box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
-body{margin:0;min-height:100vh;color:var(--ink);font-family:Tahoma,Arial,sans-serif;background:linear-gradient(145deg,#e9f8f8,#d9f1f2)}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:Arial,Helvetica,sans-serif;background:linear-gradient(145deg,#f0fcfc,#d8f4f5)}
 .watermark{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.075}
 header,main,footer{position:relative;z-index:1}
 header{background:linear-gradient(115deg,var(--teal-dark),var(--teal));color:white;padding:17px 16px 15px;box-shadow:0 3px 14px #064d5b24}
@@ -25,12 +25,12 @@ h2{font-size:15px;margin:0 0 11px}
 .fields-grid{display:flex;flex-direction:column;gap:7px}
 .field{display:flex;align-items:center;gap:9px;min-height:42px;border-bottom:1px solid #e8f0f0;padding:4px 0}
 .field:last-child{border-bottom:0}
-.field label{flex:0 0 34%;font-size:12px;font-weight:bold;overflow-wrap:anywhere;direction:ltr;text-align:right}
-.field input,.field textarea{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:13px Tahoma;background:#fff;color:var(--ink);direction:auto}
+.field label{flex:0 0 34%;font-size:12px;font-weight:bold;overflow-wrap:anywhere;direction:ltr;text-align:left}
+.field input,.field textarea{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:13px Arial,Helvetica,sans-serif;background:#fff;color:var(--ink);direction:ltr;text-align:left}
 .field textarea{min-height:66px;resize:vertical}
 .field input:focus,.field textarea:focus{outline:2px solid #a8dfe3;border-color:var(--teal)}
 .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
-button{border:0;border-radius:8px;padding:10px 12px;font: bold 12px Tahoma;cursor:pointer;background:var(--teal);color:white;white-space:nowrap}
+button{border:0;border-radius:8px;padding:10px 12px;font:bold 12px Arial,Helvetica,sans-serif;cursor:pointer;background:var(--teal);color:white;white-space:nowrap}
 button.secondary{background:#e5f1f2;color:var(--teal-dark);border:1px solid #c8e1e3}
 button.danger{background:var(--danger)}
 button:disabled{opacity:.5;cursor:not-allowed}
@@ -58,11 +58,11 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
     </g>
   </g>
 </svg>
-<header><h1>GeoField</h1><p>دفترچه ثبت مشاهدات زمین‌شناسی</p></header>
+<header><h1>GeoField</h1><p>Geological Field Observation Notebook</p></header>
 <main>
 <section class="panel">
-  <h2>انتخاب بخش اطلاعات</h2>
-  <div class="section-list" id="sectionList" aria-label="بخش‌های فرم">
+  <h2>Select Data Section</h2>
+  <div class="section-list" id="sectionList" aria-label="Data sections">
     <button type="button" class="section-btn" data-section="Project">Project</button>
     <button type="button" class="section-btn" data-section="Coordinate">Coordinate</button>
     <button type="button" class="section-btn" data-section="Geology">Geology</button>
@@ -77,21 +77,21 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
   <form id="entryForm">
     <div class="fields-grid" id="fieldsGrid"></div>
     <div class="actions">
-      <button type="submit" id="saveBtn">ذخیره مشاهده</button>
-      <button type="button" class="secondary hidden" id="cancelEdit">لغو ویرایش</button>
+      <button type="submit" id="saveBtn">Save Observation</button>
+      <button type="button" class="secondary hidden" id="cancelEdit">Cancel Editing</button>
     </div>
   </form>
 </section>
 <section class="panel">
-  <div class="topline"><h2>مشاهدات ثبت‌شده</h2><span class="small" id="count">۰ رکورد</span></div>
+  <div class="topline"><h2>Saved Observations</h2><span class="small" id="count">0 records</span></div>
   <div class="actions">
-    <button type="button" id="exportXlsx">خروجی Excel (XLSX)</button>
-    <button type="button" class="secondary" id="backup">پشتیبان JSON</button>
-    <button type="button" class="secondary" id="restoreBtn">بازیابی JSON</button>
+    <button type="button" id="exportXlsx">Export Excel (XLSX)</button>
+    <button type="button" class="secondary" id="backup">Backup JSON</button>
+    <button type="button" class="secondary" id="restoreBtn">Restore JSON</button>
     <input id="restoreFile" type="file" accept="application/json,.json">
-    <button type="button" class="danger" id="clearAll">حذف همه</button>
+    <button type="button" class="danger" id="clearAll">Delete All</button>
   </div>
-  <div id="records"><div class="empty">هنوز مشاهده‌ای ثبت نشده است.</div></div>
+  <div id="records"><div class="empty">No observations have been recorded yet.</div></div>
 </section>
 </main>
 <footer>Created by Engineer Roohollah Nikokalam</footer>
