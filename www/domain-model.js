@@ -15,7 +15,7 @@ function cleanText(value, field, max = 200) {
 
 function createId() {
   if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
-    return globalThis.createId();
+    return globalThis.crypto.randomUUID();
   }
   throw new Error("Secure random ID generation is unavailable on this device.");
 }
@@ -30,7 +30,7 @@ function uniqueIds(items, label) {
 
 export function createProject(input = {}) {
   const now = new Date().toISOString();
-  const id = cleanText(input.id, "Project ID", 128) || crypto.randomUUID();
+  const id = cleanText(input.id, "Project ID", 128) || createId();
   const name = cleanText(input.name, "Project name", 120);
   if (!name) throw new Error("Project name is required.");
   return {
