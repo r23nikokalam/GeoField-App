@@ -2,6 +2,8 @@
 
 ## Android record storage
 
+- Capacitor Android, Core, and CLI are pinned to 7.6.10, which includes the fix for GHSA-rvm3-566m-v7fv.
+
 - Observation records are serialized in the WebView process only while the app is running.
 - On Android, the app calls the local Capacitor `SecureStorage` plugin. The plugin encrypts the record payload with AES-256-GCM.
 - The AES key is generated and retained by Android Keystore under the alias `GeoField.RecordEncryption.v1`; the key is not exported to JavaScript.
