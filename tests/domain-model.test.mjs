@@ -100,3 +100,15 @@ test("validates UTM zone and hemisphere when CRS metadata is supplied", () => {
   assert.equal(valid.projects[0].utmZone, "39");
   assert.equal(valid.projects[0].datum, "WGS 84");
 });
+
+test("rejects a sample linked to an observation in another project", () => {
+  const p1 = createProject({ id: "p1", name: "Project One" });
+  const p2 = createProject({ id: "p2", name: "Project Two" });
+  const sample = createSample({ id: "s1", projectId: "p1", observationId: "o2", code: "S-1" });
+  assert.throws(() => validateWorkspace({
+    schemaVersion: 1,
+    projects: [p1, p2],
+    observations: [{ id: "o2", projectId: "p2" }],
+    samples: [sample]
+  }), /same project/i);
+});
