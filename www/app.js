@@ -70,7 +70,7 @@ function render() {
     return;
   }
   $("records").innerHTML = rows.slice().reverse().map(record => {
-    const title = record.WPT_NO || record.Profile_No || record.Lithology || record.Id || "مشاهده ثبت‌شده";
+    const title = record.WPT_NO || record.Profile_No || record.Lithology || record.Id || "Saved observation";
     const summaryKeys = ["Date","Geologist","Lithology","X_UTM","Y_UTM","Z_UTM","Mineral","Describe"];
     const summary = summaryKeys.filter(key => record[key]).slice(0, 5)
       .map(key => '<p><b>' + escapeHtml(key) + ':</b> ' + escapeHtml(record[key]) + '</p>').join("");
@@ -168,7 +168,7 @@ function beginEdit(id) {
   resetForm();
   draft = { ...record };
   editingId = id;
-  $("saveBtn").textContent = "ذخیره تغییرات";
+  $("saveBtn").textContent = "Save Changes";
   $("cancelEdit").classList.remove("hidden");
   setSection("Project");
   fillActiveSection(record);
@@ -202,7 +202,7 @@ $("records").addEventListener("click", event => {
   const edit = event.target.closest("[data-edit]");
   const del = event.target.closest("[data-delete]");
   if (edit) beginEdit(edit.dataset.edit);
-  if (del && confirm("این مشاهده Delete شود؟")) {
+  if (del && confirm("Delete this observation?")) {
     rows = rows.filter(record => record.id !== del.dataset.delete);
     persist();
     render();
@@ -286,7 +286,7 @@ $("restoreFile").addEventListener("change", async event => {
 
 $("clearAll").addEventListener("click", () => {
   if (!rows.length) return;
-  if (confirm("تمام مشاهدات برای همیشه از این دستگاه Delete شوند؟")) {
+  if (confirm("Permanently delete all observations from this device?")) {
     rows = [];
     persist();
     render();
