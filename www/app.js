@@ -19,10 +19,24 @@ let editingId = null;
 let activeSection = null;
 let draft = null;
 
+const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+const MAX_RECORDS = 10000;
+const MAX_FIELD_LENGTH = 20000;
+const MAX_ID_LENGTH = 128;
+
 function normaliseRecord(source, index = 0) {
-  const legacy = source && typeof source === "object" ? { ...source } : {};
-  const item = { id: String(legacy.id || ("restored-" + Date.now() + "-" + index)) };
-  for (const key of fieldNames) item[key] = String(legacy[key] ?? "");
+  if (!source || typeof source !== "object" || Array.isArray(source)) throw new Error("A record has an invalid structure.");
+  const legacy = source;
+  const rawId = String(legacy.id || ("restored-" + Date.now() + "-" + index));
+  if (rawId.length > MAX_ID_LENGTH) throw new Error("A record ID is too long.");
+  const item = { id: rawId };
+  for (const key of fieldNames) {
+    const value = legacy[key] ?? "";
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") throw new Error("A field contains an unsupported value.");
+    const textValue = String(value);
+    if (textValue.length > MAX_FIELD_LENGTH) throw new Error("A field exceeds the allowed length.");
+    item[key] = textValue;
+  }
 
   // Preserve the previous seven-field format and map its values into the closest matching columns.
   if (Object.keys(legacy).some(key => ["rockColor","unitName","minerals","alterations","sample","notes","analysis"].includes(key))) {
@@ -56,7 +70,12 @@ try {
 }
 
 function persist() {
-  localStorage.setItem("geofield_records", JSON.stringify(rows));
+  try {
+    localStorage.setItem("geofield_records", JSON.stringify(rows));
+  } catch (error) {
+    alert("Unable to save data. Device storage may be full. Export a backup and free storage space.");
+    throw error;
+  }
 }
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
@@ -268,11 +287,19 @@ $("restoreFile").addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
   try {
+    if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 10 MB size limit.");
     const parsed = JSON.parse(await file.text());
-    const incoming = Array.isArray(parsed) ? parsed : parsed.records;
+    const incoming = Array.isArray(parsed) ? parsed : parsed?.records;
     if (!Array.isArray(incoming)) throw new Error("The backup file structure is invalid.");
-    if (!confirm("Restore " + incoming.length + " records? Current data will be replaced with the data in this file.")) return;
-    rows = incoming.map(normaliseRecord);
+    if (incoming.length > MAX_RECORDS) throw new Error("The backup contains too many records (maximum 10,000).");
+    const validated = incoming.map(normaliseRecord);
+    const ids = new Set();
+    for (const record of validated) {
+      if (ids.has(record.id)) throw new Error("The backup contains duplicate record IDs.");
+      ids.add(record.id);
+    }
+    if (!confirm("Restore " + validated.length + " records? Current data will be replaced with the data in this file.")) return;
+    rows = validated;
     persist();
     render();
     resetForm();
