@@ -73,3 +73,30 @@ test("preserves project timestamps when a workspace is normalized", async () => 
   assert.equal(workspace.projects[0].createdAt, original.createdAt);
   assert.equal(workspace.projects[0].updatedAt, original.updatedAt);
 });
+
+test("stores CRS metadata without guessing unknown datum or UTM zone", () => {
+  const project = createProject({ id: "crs-1", name: "Unreferenced survey" });
+  assert.equal(project.coordinateSystem, "Unknown");
+  assert.equal(project.datum, "");
+  assert.equal(project.utmZone, "");
+  assert.equal(project.hemisphere, "");
+});
+
+test("validates UTM zone and hemisphere when CRS metadata is supplied", () => {
+  const base = { id: "crs-2", name: "UTM survey", coordinateSystem: "UTM" };
+  assert.throws(() => validateWorkspace({
+    schemaVersion: 1, projects: [createProject({ ...base, utmZone: "61" })],
+    observations: [], samples: []
+  }), /UTM zone/i);
+  assert.throws(() => validateWorkspace({
+    schemaVersion: 1, projects: [createProject({ ...base, hemisphere: "E" })],
+    observations: [], samples: []
+  }), /hemisphere/i);
+  const valid = validateWorkspace({
+    schemaVersion: 1,
+    projects: [createProject({ ...base, utmZone: "39", hemisphere: "N", datum: "WGS 84" })],
+    observations: [], samples: []
+  });
+  assert.equal(valid.projects[0].utmZone, "39");
+  assert.equal(valid.projects[0].datum, "WGS 84");
+});
