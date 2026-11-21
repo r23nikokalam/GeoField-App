@@ -395,11 +395,6 @@ async function initializeStorage() {
   try {
     rows = await recordStore.load(normaliseRecord);
     storageReady = true;
-    status.textContent = Capacitor.isNativePlatform()
-      ? "Device storage protection: AES-256-GCM encryption with an Android Keystore key. Exported JSON backups are unencrypted; keep them private."
-      : "Browser preview mode: records use browser-local storage. Install the Android app for encrypted device storage.";
-    status.classList.remove("storage-error");
-    status.hidden = false;
     render();
     setControlsEnabled(true);
   } catch (error) {
