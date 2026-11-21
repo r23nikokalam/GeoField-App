@@ -53,3 +53,29 @@ Observation search is scoped to the active project and supports full-field text 
 ## Explicitly excluded
 
 Offline maps, photo capture, track recording, and compass features are out of scope as requested.
+
+## Portable encrypted JSON backups
+
+New JSON backups are encrypted independently of the Android Keystore and can be restored on another supported device:
+
+- AES-256-GCM authenticated encryption.
+- PBKDF2 with HMAC-SHA-256 and a per-backup random 16-byte salt (310,000 iterations).
+- A fresh random 12-byte AES-GCM nonce for each backup.
+- The user-supplied password is not stored in the app or in the backup.
+- Password length is 10–256 characters. A lost password cannot be recovered.
+- The encrypted envelope authenticates its format metadata and ciphertext; incorrect passwords or modifications cause restore to fail.
+- Restore continues to accept older unencrypted JSON backups for compatibility, but warns before importing them.
+
+The app's Android workspace remains encrypted with the Android Keystore-backed storage. The portable backup password is separate, so a backup can be restored independently of the originating device's Keystore.
+
+## PDF project reports
+
+A project-filtered PDF report contains project metadata and CRS settings, all observations in the active project, and that project's sample register. The report is generated offline. The built-in PDF font supports Latin/WinAnsi text; if a report contains non-Latin characters, PDF export stops with a clear message rather than silently replacing characters. XLSX export preserves Unicode text.
+
+## Geological vocabulary suggestions
+
+Editable suggestions are provided for common lithologies, minerals, alteration styles, structures, fault types, contact descriptions, and colours. Suggestions do not force a selection: field values remain free text so local terminology and unusual geological descriptions can be entered.
+
+## Display preferences
+
+Dark mode and font scaling (90%–130%) are stored as local display preferences. They do not contain geological records or credentials and do not alter the encrypted workspace.
