@@ -37,8 +37,12 @@ function normaliseRecord(source, index = 0) {
   }
 
   const legacy = source;
+  if (legacy.id !== undefined && legacy.id !== null &&
+      typeof legacy.id !== "string" && typeof legacy.id !== "number") {
+    throw new Error("A record ID has an unsupported value.");
+  }
   const rawId = String(legacy.id || ("restored-" + index));
-  if (rawId.length > MAX_ID_LENGTH) throw new Error("A record ID is too long.");
+  if (!rawId.trim() || rawId.length > MAX_ID_LENGTH) throw new Error("A record ID is invalid or too long.");
 
   const item = { id: rawId };
   for (const key of fieldNames) {
@@ -71,7 +75,7 @@ function normaliseRecord(source, index = 0) {
     if (!item.Index_mine) item.Index_mine = String(legacy.sample ?? "");
     if (!item.Anlz_Typ) item.Anlz_Typ = String(legacy.analysis ?? "");
     if (!item.Describe) item.Describe = String(legacy.notes ?? "");
-  } else if (legacy._legacy && typeof legacy._legacy === "object") {
+  } else if (legacy._legacy && typeof legacy._legacy === "object" && !Array.isArray(legacy._legacy)) {
     item._legacy = {};
     for (const key of legacyKeys) {
       const value = legacy._legacy[key] ?? "";
@@ -83,6 +87,11 @@ function normaliseRecord(source, index = 0) {
     }
   }
 
+  for (const key of fieldNames) {
+    if (item[key].length > MAX_FIELD_LENGTH) {
+      throw new Error("A field exceeds the allowed length.");
+    }
+  }
   return item;
 }
 
