@@ -78,6 +78,18 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
   <div class="actions">
     <button type="button" id="addProject">Create Project</button>
   </div>
+  <div class="actions">
+    <button type="button" id="editProject" class="secondary">Edit Project Details</button>
+    <button type="button" id="deleteProject" class="danger">Delete Empty Project</button>
+  </div>
+  <form id="projectEditForm" hidden>
+    <div class="field"><label for="editProjectName">Project Name</label><input id="editProjectName" maxlength="120" required></div>
+    <div class="field"><label for="editProjectCode">Project Code</label><input id="editProjectCode" maxlength="40"></div>
+    <div class="field"><label for="editProjectClient">Client</label><input id="editProjectClient" maxlength="120"></div>
+    <div class="field"><label for="editProjectArea">Project Area</label><input id="editProjectArea" maxlength="160"></div>
+    <div class="field"><label for="editProjectDescription">Description</label><textarea id="editProjectDescription" rows="2" maxlength="2000"></textarea></div>
+    <div class="actions"><button type="submit">Save Project Details</button><button type="button" id="cancelProjectEdit" class="secondary">Cancel</button></div>
+  </form>
 </section>
 <section class="panel">
   <h2>Select Data Section</h2>
