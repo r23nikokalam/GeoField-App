@@ -122,7 +122,7 @@ function updateProgress() {
     const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
     return element && element.value.trim();
   }).length;
-  $("fieldProgress").textContent = complete.toLocaleString("en-US") + " از " + section.fields.length.toLocaleString("en-US");
+  $("fieldProgress").textContent = complete.toLocaleString("en-US") + " of " + section.fields.length.toLocaleString("en-US");
 }
 function fillActiveSection(record) {
   if (!activeSection) return;
