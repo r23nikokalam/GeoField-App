@@ -134,6 +134,12 @@ export function validateWorkspace(value) {
     if (sample.observationId && !observationIds.has(sample.observationId)) {
       throw new Error("A sample references an observation that does not exist.");
     }
+    if (sample.observationId) {
+      const linkedObservation = observations.find(item => item.id === sample.observationId);
+      if (linkedObservation.projectId !== sample.projectId) {
+        throw new Error("A sample and its linked observation must belong to the same project.");
+      }
+    }
   }
   const normalizedProjects = projects.map(project => createProject(project));
   const normalizedSamples = samples.map(sample => createSample(sample));
