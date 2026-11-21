@@ -19,7 +19,17 @@ If encrypted data cannot be read or migration verification fails, the app locks 
 
 ## User backups
 
-The user-initiated JSON export is intentionally a portable plaintext backup so it can be restored on another device. Keep exported backup files private. The in-app record store remains encrypted on Android.
+New user-initiated JSON backups are portable and encrypted independently of the Android Keystore:
+
+- AES-256-GCM authenticated encryption.
+- PBKDF2-HMAC-SHA-256 with 310,000 iterations and a fresh random 16-byte salt.
+- A fresh random 12-byte GCM nonce for every backup.
+- Password length is 10–256 characters. The password is never stored by GeoField.
+- The password is not recoverable. If it is lost, the encrypted backup cannot be restored.
+- Restore authenticates the ciphertext and metadata; wrong passwords or modified files are rejected.
+- Older plaintext JSON backups remain importable for compatibility after an explicit warning, but new exports are encrypted.
+
+Because the backup key is derived from the user's password rather than the device Keystore, the backup can be restored on another supported device. The Android workspace itself remains protected by the Android Keystore-backed storage.
 
 ## Important limitations
 
