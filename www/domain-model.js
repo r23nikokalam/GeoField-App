@@ -13,6 +13,13 @@ function cleanText(value, field, max = 200) {
   return result;
 }
 
+function createId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.createId();
+  }
+  throw new Error("Secure random ID generation is unavailable on this device.");
+}
+
 function uniqueIds(items, label) {
   const ids = new Set();
   for (const item of items) {
@@ -34,7 +41,7 @@ export function createProject(input = {}) {
     area: cleanText(input.area, "Project area", 160),
     description: cleanText(input.description, "Project description", 2000),
     createdAt: cleanText(input.createdAt, "Creation date", 40) || now,
-    updatedAt: now
+    updatedAt: cleanText(input.updatedAt, "Update date", 40) || now
   };
 }
 
