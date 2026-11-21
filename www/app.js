@@ -64,9 +64,9 @@ function escapeHtml(value) {
   }[ch]));
 }
 function render() {
-  $("count").textContent = rows.length.toLocaleString("fa-IR") + " رکورد";
+  $("count").textContent = rows.length.toLocaleString("en-US") + " records";
   if (!rows.length) {
-    $("records").innerHTML = '<div class="empty">هنوز مشاهده‌ای ثبت نشده است.</div>';
+    $("records").innerHTML = '<div class="empty">No observations have been recorded yet.</div>';
     return;
   }
   $("records").innerHTML = rows.slice().reverse().map(record => {
@@ -77,11 +77,11 @@ function render() {
     const filled = fieldNames.filter(key => record[key]).length;
     return `
       <article class="record">
-        <h3>${escapeHtml(title)} <span class="small">— ${filled} فیلد تکمیل‌شده</span></h3>
+        <h3>${escapeHtml(title)} <span class="small">— ${filled} fields completed</span></h3>
         ${summary}
         <div class="actions">
-          <button type="button" class="secondary" data-edit="${escapeHtml(record.id)}">ویرایش</button>
-          <button type="button" class="danger" data-delete="${escapeHtml(record.id)}">حذف</button>
+          <button type="button" class="secondary" data-edit="${escapeHtml(record.id)}">Edit</button>
+          <button type="button" class="danger" data-delete="${escapeHtml(record.id)}">Delete</button>
         </div>
       </article>`;
   }).join("");
@@ -122,7 +122,7 @@ function updateProgress() {
     const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
     return element && element.value.trim();
   }).length;
-  $("fieldProgress").textContent = complete.toLocaleString("fa-IR") + " از " + section.fields.length.toLocaleString("fa-IR");
+  $("fieldProgress").textContent = complete.toLocaleString("en-US") + " از " + section.fields.length.toLocaleString("en-US");
 }
 function fillActiveSection(record) {
   if (!activeSection) return;
@@ -158,7 +158,7 @@ function resetForm() {
   $("fieldsGrid").innerHTML = "";
   $("sectionTitle").textContent = "";
   $("fieldProgress").textContent = "";
-  $("saveBtn").textContent = "ذخیره مشاهده";
+  $("saveBtn").textContent = "Save Observation";
   $("cancelEdit").classList.add("hidden");
   document.querySelectorAll(".section-btn").forEach(button => button.classList.remove("active"));
 }
@@ -187,7 +187,7 @@ $("entryForm").addEventListener("submit", event => {
   event.preventDefault();
   const item = collectForm();
   if (!fieldNames.some(key => item[key])) {
-    alert("حداقل یک فیلد را تکمیل کنید.");
+    alert("Please complete at least one field.");
     return;
   }
   if (editingId) rows = rows.map(record => record.id === editingId ? item : record);
@@ -202,7 +202,7 @@ $("records").addEventListener("click", event => {
   const edit = event.target.closest("[data-edit]");
   const del = event.target.closest("[data-delete]");
   if (edit) beginEdit(edit.dataset.edit);
-  if (del && confirm("این مشاهده حذف شود؟")) {
+  if (del && confirm("این مشاهده Delete شود؟")) {
     rows = rows.filter(record => record.id !== del.dataset.delete);
     persist();
     render();
@@ -220,7 +220,7 @@ async function saveFile(blob, filename) {
     }
     const base64 = btoa(binary);
     const saved = await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
-    await Share.share({ title: filename, text: "فایل خروجی GeoField", url: saved.uri, dialogTitle: "ذخیره یا ارسال فایل" });
+    await Share.share({ title: filename, text: "GeoField export file", url: saved.uri, dialogTitle: "Save or share file" });
     return;
   }
   const url = URL.createObjectURL(blob);
@@ -233,7 +233,7 @@ async function saveFile(blob, filename) {
 
 $("exportXlsx").addEventListener("click", async () => {
   if (!rows.length) {
-    alert("هنوز رکوردی برای خروجی وجود ندارد.");
+    alert("There are no records to export yet.");
     return;
   }
   try {
@@ -248,7 +248,7 @@ $("exportXlsx").addEventListener("click", async () => {
     }), "GeoField-Observations.xlsx");
   } catch (error) {
     console.error(error);
-    alert("ساخت یا ذخیره فایل Excel ناموفق بود: " + error.message);
+    alert("Failed to create or save the Excel file: " + error.message);
   }
 });
 
@@ -259,7 +259,7 @@ $("backup").addEventListener("click", async () => {
     });
     await saveFile(blob, "GeoField-Backup.json");
   } catch (error) {
-    alert("ساخت فایل پشتیبان ناموفق بود: " + error.message);
+    alert("Failed to create the backup file: " + error.message);
   }
 });
 
@@ -270,15 +270,15 @@ $("restoreFile").addEventListener("change", async event => {
   try {
     const parsed = JSON.parse(await file.text());
     const incoming = Array.isArray(parsed) ? parsed : parsed.records;
-    if (!Array.isArray(incoming)) throw new Error("ساختار فایل پشتیبان معتبر نیست.");
-    if (!confirm("تعداد " + incoming.length + " رکورد بازیابی شود؟ داده‌های فعلی با داده‌های فایل جایگزین می‌شوند.")) return;
+    if (!Array.isArray(incoming)) throw new Error("The backup file structure is invalid.");
+    if (!confirm("Restore " + incoming.length + " records? Current data will be replaced with the data in this file.")) return;
     rows = incoming.map(normaliseRecord);
     persist();
     render();
     resetForm();
-    alert("بازیابی با موفقیت انجام شد.");
+    alert("Backup restored successfully.");
   } catch (error) {
-    alert("خواندن فایل ناموفق بود: " + error.message);
+    alert("Failed to read the file: " + error.message);
   } finally {
     event.target.value = "";
   }
@@ -286,7 +286,7 @@ $("restoreFile").addEventListener("change", async event => {
 
 $("clearAll").addEventListener("click", () => {
   if (!rows.length) return;
-  if (confirm("تمام مشاهدات برای همیشه از این دستگاه حذف شوند؟")) {
+  if (confirm("تمام مشاهدات برای همیشه از این دستگاه Delete شوند؟")) {
     rows = [];
     persist();
     render();
