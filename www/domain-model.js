@@ -40,6 +40,13 @@ export function createProject(input = {}) {
     client: cleanText(input.client, "Client", 120),
     area: cleanText(input.area, "Project area", 160),
     description: cleanText(input.description, "Project description", 2000),
+    coordinateSystem: cleanText(input.coordinateSystem, "Coordinate system", 40) || "Unknown",
+    datum: cleanText(input.datum, "Horizontal datum", 80),
+    utmZone: cleanText(input.utmZone, "UTM zone", 2),
+    hemisphere: cleanText(input.hemisphere, "Hemisphere", 1),
+    horizontalUnit: cleanText(input.horizontalUnit, "Horizontal unit", 30),
+    verticalDatum: cleanText(input.verticalDatum, "Vertical datum", 100),
+    elevationUnit: cleanText(input.elevationUnit, "Elevation unit", 30),
     createdAt: cleanText(input.createdAt, "Creation date", 40) || now,
     updatedAt: cleanText(input.updatedAt, "Update date", 40) || now
   };
@@ -128,11 +135,22 @@ export function validateWorkspace(value) {
       throw new Error("A sample references an observation that does not exist.");
     }
   }
+  const normalizedProjects = projects.map(project => createProject(project));
+  const normalizedSamples = samples.map(sample => createSample(sample));
+  for (const project of normalizedProjects) {
+    if (project.coordinateSystem === "UTM" && project.utmZone &&
+        (!/^\\d{1,2}$/.test(project.utmZone) || Number(project.utmZone) < 1 || Number(project.utmZone) > 60)) {
+      throw new Error("UTM zone must be a number from 1 to 60.");
+    }
+    if (project.hemisphere && !["N", "S"].includes(project.hemisphere)) {
+      throw new Error("Hemisphere must be N or S.");
+    }
+  }
   return {
     schemaVersion: WORKSPACE_SCHEMA_VERSION,
-    projects,
+    projects: normalizedProjects,
     observations,
-    samples
+    samples: normalizedSamples
   };
 }
 
