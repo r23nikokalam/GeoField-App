@@ -42,8 +42,8 @@ async function deriveKey(password, salt, iterations) {
 
 export async function encryptBackupPayload(payload, password) {
   requireCrypto();
-  if (typeof password !== "string" || password.length < 10) {
-    throw new Error("Use a backup password with at least 10 characters.");
+  if (typeof password !== "string" || password.length < 10 || password.length > 256) {
+    throw new Error("Use a backup password between 10 and 256 characters.");
   }
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -76,7 +76,7 @@ export async function decryptBackupPayload(envelope, password) {
       envelope.iterations < 100000 || envelope.iterations > MAX_ITERATIONS) {
     throw new Error("Unsupported or invalid encrypted GeoField backup.");
   }
-  if (typeof password !== "string" || !password.length) {
+  if (typeof password !== "string" || !password.length || password.length > 256) {
     throw new Error("A backup password is required.");
   }
   const salt = base64ToBytes(envelope.salt);
