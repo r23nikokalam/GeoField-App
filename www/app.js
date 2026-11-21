@@ -1,7 +1,14 @@
 import * as XLSX from "xlsx";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { SecureRecordStore, validateRecords } from "./secure-record-store.js";
+
+const SecureStorage = registerPlugin("SecureStorage");
+const recordStore = new SecureRecordStore({
+  native: Capacitor.isNativePlatform(),
+  plugin: SecureStorage
+});
 
 const sections = [
   { name: "Project", fields: ["FID","Id","WPT_NO","Date","Geologist","Profile_No"] },
@@ -18,23 +25,46 @@ let rows = [];
 let editingId = null;
 let activeSection = null;
 let draft = null;
+let storageReady = false;
+
+const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+const MAX_RECORDS = 10000;
+const MAX_FIELD_LENGTH = 20000;
+const MAX_ID_LENGTH = 128;
 
 function normaliseRecord(source, index = 0) {
-  const legacy = source && typeof source === "object" ? { ...source } : {};
-  const item = { id: String(legacy.id || ("restored-" + Date.now() + "-" + index)) };
-  for (const key of fieldNames) item[key] = String(legacy[key] ?? "");
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    throw new Error("A record has an invalid structure.");
+  }
 
-  // Preserve the previous seven-field format and map its values into the closest matching columns.
-  if (Object.keys(legacy).some(key => ["rockColor","unitName","minerals","alterations","sample","notes","analysis"].includes(key))) {
-    item._legacy = legacy._legacy || {
-      rockColor: String(legacy.rockColor ?? ""),
-      unitName: String(legacy.unitName ?? ""),
-      minerals: String(legacy.minerals ?? ""),
-      alterations: String(legacy.alterations ?? ""),
-      sample: String(legacy.sample ?? ""),
-      notes: String(legacy.notes ?? ""),
-      analysis: String(legacy.analysis ?? "")
-    };
+  const legacy = source;
+  const rawId = String(legacy.id || ("restored-" + Date.now() + "-" + index));
+  if (rawId.length > MAX_ID_LENGTH) throw new Error("A record ID is too long.");
+
+  const item = { id: rawId };
+  for (const key of fieldNames) {
+    const value = legacy[key] ?? "";
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+      throw new Error("A field contains an unsupported value.");
+    }
+    const textValue = String(value);
+    if (textValue.length > MAX_FIELD_LENGTH) throw new Error("A field exceeds the allowed length.");
+    item[key] = textValue;
+  }
+
+  const legacyKeys = ["rockColor","unitName","minerals","alterations","sample","notes","analysis"];
+  if (legacyKeys.some(key => Object.prototype.hasOwnProperty.call(legacy, key))) {
+    const prior = legacy._legacy && typeof legacy._legacy === "object" ? legacy._legacy : legacy;
+    const preserved = {};
+    for (const key of legacyKeys) {
+      const value = prior[key] ?? "";
+      if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+        throw new Error("A legacy field contains an unsupported value.");
+      }
+      preserved[key] = String(value);
+      if (preserved[key].length > MAX_FIELD_LENGTH) throw new Error("A legacy field exceeds the allowed length.");
+    }
+    item._legacy = preserved;
     if (!item.Lithology) item.Lithology = String(legacy.unitName ?? "");
     if (!item.colour) item.colour = String(legacy.rockColor ?? "");
     if (!item.Mineral) item.Mineral = String(legacy.minerals ?? "");
@@ -42,27 +72,27 @@ function normaliseRecord(source, index = 0) {
     if (!item.Index_mine) item.Index_mine = String(legacy.sample ?? "");
     if (!item.Anlz_Typ) item.Anlz_Typ = String(legacy.analysis ?? "");
     if (!item.Describe) item.Describe = String(legacy.notes ?? "");
-  } else if (legacy._legacy) {
-    item._legacy = legacy._legacy;
+  } else if (legacy._legacy && typeof legacy._legacy === "object") {
+    item._legacy = {};
+    for (const key of legacyKeys) {
+      const value = legacy._legacy[key] ?? "";
+      if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+        throw new Error("A legacy field contains an unsupported value.");
+      }
+      item._legacy[key] = String(value);
+      if (item._legacy[key].length > MAX_FIELD_LENGTH) throw new Error("A legacy field exceeds the allowed length.");
+    }
   }
+
   return item;
 }
 
-try {
-  const stored = JSON.parse(localStorage.getItem("geofield_records") || "[]");
-  if (Array.isArray(stored)) rows = stored.map(normaliseRecord);
-} catch {
-  rows = [];
+function setControlsEnabled(enabled) {
+  document.querySelectorAll("button, input, textarea").forEach(element => {
+    element.disabled = !enabled;
+  });
 }
 
-function persist() {
-  localStorage.setItem("geofield_records", JSON.stringify(rows));
-}
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[ch]));
-}
 function render() {
   $("count").textContent = rows.length.toLocaleString("en-US") + " records";
   if (!rows.length) {
@@ -86,6 +116,18 @@ function render() {
       </article>`;
   }).join("");
 }
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
+}
+
+async function persist(nextRows = rows) {
+  await recordStore.save(nextRows);
+  rows = nextRows;
+}
+
 function setSection(sectionName) {
   const section = sections.find(item => item.name === sectionName);
   if (!section) return;
@@ -93,7 +135,7 @@ function setSection(sectionName) {
   activeSection = sectionName;
   $("fieldsPanel").hidden = false;
   $("sectionTitle").textContent = section.name;
-  $("fieldsGrid").innerHTML = section.fields.map((key, index) => {
+  $("fieldsGrid").innerHTML = section.fields.map(key => {
     const safeId = "field-" + fieldNames.indexOf(key);
     const isLong = key === "Describe";
     return `
@@ -115,6 +157,7 @@ function setSection(sectionName) {
   });
   updateProgress();
 }
+
 function updateProgress() {
   if (!activeSection) return;
   const section = sections.find(item => item.name === activeSection);
@@ -124,6 +167,7 @@ function updateProgress() {
   }).length;
   $("fieldProgress").textContent = complete.toLocaleString("en-US") + " of " + section.fields.length.toLocaleString("en-US");
 }
+
 function fillActiveSection(record) {
   if (!activeSection) return;
   const section = sections.find(item => item.name === activeSection);
@@ -133,6 +177,7 @@ function fillActiveSection(record) {
   }
   updateProgress();
 }
+
 function saveActiveSection() {
   if (!activeSection || !draft) return;
   const section = sections.find(item => item.name === activeSection);
@@ -141,6 +186,7 @@ function saveActiveSection() {
     if (element) draft[key] = element.value.trim();
   }
 }
+
 function collectForm() {
   saveActiveSection();
   const item = { id: editingId || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) };
@@ -149,6 +195,7 @@ function collectForm() {
   for (const key of fieldNames) item[key] = String(draft?.[key] ?? "");
   return item;
 }
+
 function resetForm() {
   editingId = null;
   activeSection = null;
@@ -162,6 +209,7 @@ function resetForm() {
   $("cancelEdit").classList.add("hidden");
   document.querySelectorAll(".section-btn").forEach(button => button.classList.remove("active"));
 }
+
 function beginEdit(id) {
   const record = rows.find(item => item.id === id);
   if (!record) return;
@@ -174,41 +222,6 @@ function beginEdit(id) {
   fillActiveSection(record);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-
-$("sectionList").addEventListener("click", event => {
-  const button = event.target.closest("[data-section]");
-  if (!button) return;
-  if (!draft) draft = {};
-  setSection(button.dataset.section);
-});
-$("fieldsGrid").addEventListener("input", updateProgress);
-
-$("entryForm").addEventListener("submit", event => {
-  event.preventDefault();
-  const item = collectForm();
-  if (!fieldNames.some(key => item[key])) {
-    alert("Please complete at least one field.");
-    return;
-  }
-  if (editingId) rows = rows.map(record => record.id === editingId ? item : record);
-  else rows.push(item);
-  persist();
-  render();
-  resetForm();
-});
-$("cancelEdit").addEventListener("click", resetForm);
-
-$("records").addEventListener("click", event => {
-  const edit = event.target.closest("[data-edit]");
-  const del = event.target.closest("[data-delete]");
-  if (edit) beginEdit(edit.dataset.edit);
-  if (del && confirm("Delete this observation?")) {
-    rows = rows.filter(record => record.id !== del.dataset.delete);
-    persist();
-    render();
-    if (editingId === del.dataset.delete) resetForm();
-  }
-});
 
 async function saveFile(blob, filename) {
   if (Capacitor.isNativePlatform()) {
@@ -231,7 +244,59 @@ async function saveFile(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
+$("sectionList").addEventListener("click", event => {
+  if (!storageReady) return;
+  const button = event.target.closest("[data-section]");
+  if (!button) return;
+  if (!draft) draft = {};
+  setSection(button.dataset.section);
+});
+$("fieldsGrid").addEventListener("input", updateProgress);
+
+$("entryForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!storageReady) return;
+  const item = collectForm();
+  if (!fieldNames.some(key => item[key])) {
+    alert("Please complete at least one field.");
+    return;
+  }
+  const nextRows = editingId
+    ? rows.map(record => record.id === editingId ? item : record)
+    : [...rows, item];
+  try {
+    await persist(nextRows);
+    render();
+    resetForm();
+  } catch (error) {
+    console.error(error);
+    alert("The observation could not be saved. Your previously saved records were not replaced.");
+  }
+});
+$("cancelEdit").addEventListener("click", () => {
+  if (storageReady) resetForm();
+});
+
+$("records").addEventListener("click", async event => {
+  if (!storageReady) return;
+  const edit = event.target.closest("[data-edit]");
+  const del = event.target.closest("[data-delete]");
+  if (edit) beginEdit(edit.dataset.edit);
+  if (del && confirm("Delete this observation?")) {
+    const nextRows = rows.filter(record => record.id !== del.dataset.delete);
+    try {
+      await persist(nextRows);
+      render();
+      if (editingId === del.dataset.delete) resetForm();
+    } catch (error) {
+      console.error(error);
+      alert("The observation could not be deleted. Your saved records were not changed.");
+    }
+  }
+});
+
 $("exportXlsx").addEventListener("click", async () => {
+  if (!storageReady) return;
   if (!rows.length) {
     alert("There are no records to export yet.");
     return;
@@ -253,8 +318,9 @@ $("exportXlsx").addEventListener("click", async () => {
 });
 
 $("backup").addEventListener("click", async () => {
+  if (!storageReady) return;
   try {
-    const blob = new Blob([JSON.stringify({ app: "GeoField", version: 2, records: rows }, null, 2)], {
+    const blob = new Blob([JSON.stringify({ app: "GeoField", version: 3, records: rows }, null, 2)], {
       type: "application/json"
     });
     await saveFile(blob, "GeoField-Backup.json");
@@ -263,35 +329,65 @@ $("backup").addEventListener("click", async () => {
   }
 });
 
-$("restoreBtn").addEventListener("click", () => $("restoreFile").click());
+$("restoreBtn").addEventListener("click", () => {
+  if (storageReady) $("restoreFile").click();
+});
 $("restoreFile").addEventListener("change", async event => {
+  if (!storageReady) return;
   const file = event.target.files?.[0];
   if (!file) return;
   try {
+    if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 10 MB size limit.");
     const parsed = JSON.parse(await file.text());
-    const incoming = Array.isArray(parsed) ? parsed : parsed.records;
-    if (!Array.isArray(incoming)) throw new Error("The backup file structure is invalid.");
-    if (!confirm("Restore " + incoming.length + " records? Current data will be replaced with the data in this file.")) return;
-    rows = incoming.map(normaliseRecord);
-    persist();
+    const incoming = Array.isArray(parsed) ? parsed : parsed?.records;
+    const validated = validateRecords(incoming, normaliseRecord);
+    if (!confirm("Restore " + validated.length + " records? Current data will be replaced with the data in this file.")) return;
+    await persist(validated);
     render();
     resetForm();
     alert("Backup restored successfully.");
   } catch (error) {
-    alert("Failed to read the file: " + error.message);
+    alert("Failed to restore the backup: " + error.message);
   } finally {
     event.target.value = "";
   }
 });
 
-$("clearAll").addEventListener("click", () => {
-  if (!rows.length) return;
+$("clearAll").addEventListener("click", async () => {
+  if (!storageReady || !rows.length) return;
   if (confirm("Permanently delete all observations from this device?")) {
-    rows = [];
-    persist();
-    render();
-    resetForm();
+    try {
+      await persist([]);
+      render();
+      resetForm();
+    } catch (error) {
+      console.error(error);
+      alert("The records could not be deleted. Your saved data was not changed.");
+    }
   }
 });
 
-render();
+async function initializeStorage() {
+  setControlsEnabled(false);
+  const status = $("storageStatus");
+  try {
+    rows = await recordStore.load(normaliseRecord);
+    storageReady = true;
+    status.textContent = Capacitor.isNativePlatform()
+      ? "Device storage protection: AES-256-GCM encryption with an Android Keystore key."
+      : "Browser preview mode: records use browser-local storage. Install the Android app for encrypted device storage.";
+    status.classList.remove("storage-error");
+    status.hidden = false;
+    render();
+    setControlsEnabled(true);
+  } catch (error) {
+    console.error("GeoField secure storage initialization failed:", error);
+    status.textContent = "Storage initialization failed. Editing is locked to protect your existing data. Do not clear app data or reinstall the app. " + error.message;
+    status.classList.add("storage-error");
+    status.hidden = false;
+    storageReady = false;
+    setControlsEnabled(false);
+  }
+}
+
+initializeStorage();
