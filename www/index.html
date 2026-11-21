@@ -101,6 +101,41 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
     </div>
   </form>
 </section>
+<section class="panel" aria-labelledby="sampleRegisterTitle">
+  <h2 id="sampleRegisterTitle">Sample Register</h2>
+  <form id="sampleForm">
+    <div class="field">
+      <label for="sampleCode">Sample Code</label>
+      <input id="sampleCode" type="text" maxlength="80" required autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sampleType">Sample Type</label>
+      <select id="sampleType">
+        <option value="">Select type</option>
+        <option>Rock</option>
+        <option>Soil</option>
+        <option>Sediment</option>
+        <option>Core</option>
+        <option>Chip</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="sampleMaterial">Material</label>
+      <input id="sampleMaterial" type="text" maxlength="120" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sampleObservation">Observation</label>
+      <select id="sampleObservation"><option value="">Not linked</option></select>
+    </div>
+    <div class="field">
+      <label for="sampleNotes">Notes</label>
+      <textarea id="sampleNotes" rows="2" maxlength="2000"></textarea>
+    </div>
+    <div class="actions"><button type="submit">Save Sample</button></div>
+  </form>
+  <div id="sampleList"><div class="empty">No samples registered in this project.</div></div>
+</section>
 <section class="panel">
   <div class="topline"><h2>Saved Observations</h2><span class="small" id="count">0 records</span></div>
   <div class="actions">
