@@ -3,6 +3,9 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { Geolocation } from "@capacitor/geolocation";
+import { encryptBackupPayload, decryptBackupPayload, isEncryptedBackup } from "./backup-crypto.js";
+import { buildProjectReport } from "./report-pdf.js";
+import { vocabularyForField } from "./geology-vocabulary.js";
 import { SecureRecordStore, validateRecords } from "./secure-record-store.js";
 import { createProject, createSample, migrateLegacyRecords, validateWorkspace } from "./domain-model.js";
 
@@ -113,8 +116,38 @@ function normaliseRecord(source, index = 0) {
   return item;
 }
 
+const PREFERENCES_KEY = "geofield_ui_preferences";
+
+function applyDisplayPreferences() {
+  let preferences = {};
+  try {
+    preferences = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || "{}");
+  } catch { preferences = {}; }
+  const dark = preferences.darkMode === true;
+  const scale = Number.isFinite(Number(preferences.fontScale))
+    ? Math.min(1.3, Math.max(0.9, Number(preferences.fontScale))) : 1;
+  document.body.classList.toggle("dark-mode", dark);
+  document.documentElement.style.setProperty("--font-scale", String(scale));
+  $("darkModeToggle").checked = dark;
+  $("fontScale").value = String(scale);
+  $("fontScaleValue").textContent = Math.round(scale * 100) + "%";
+}
+
+function saveDisplayPreferences() {
+  const preferences = {
+    darkMode: $("darkModeToggle").checked,
+    fontScale: Number($("fontScale").value)
+  };
+  try {
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+  } catch (error) {
+    console.warn("Display preferences could not be saved:", error);
+  }
+  applyDisplayPreferences();
+}
+
 function setControlsEnabled(enabled) {
-  document.querySelectorAll("button, input, textarea").forEach(element => {
+  document.querySelectorAll("button, input, textarea, select").forEach(element => {
     element.disabled = !enabled;
   });
 }
@@ -242,12 +275,20 @@ function setSection(sectionName) {
   $("fieldsGrid").innerHTML = section.fields.map(key => {
     const safeId = "field-" + fieldNames.indexOf(key);
     const isLong = key === "Describe";
+    const suggestions = vocabularyForField(key);
+    const listId = "vocab-" + fieldNames.indexOf(key);
+    const inputMarkup = isLong
+      ? '<textarea id="' + safeId + '" data-field="' + escapeHtml(key) + '" rows="3"></textarea>'
+      : '<input id="' + safeId + '" data-field="' + escapeHtml(key) + '" type="text" autocomplete="off"' +
+        (suggestions.length ? ' list="' + listId + '"' : '') + '>';
+    const datalistMarkup = suggestions.length
+      ? '<datalist id="' + listId + '">' + suggestions.map(value => '<option value="' + escapeHtml(value) + '"></option>').join("") + '</datalist>'
+      : "";
     return `
       <div class="field">
         <label for="${safeId}">${escapeHtml(key)}</label>
-        ${isLong
-          ? '<textarea id="' + safeId + '" data-field="' + escapeHtml(key) + '" rows="3"></textarea>'
-          : '<input id="' + safeId + '" data-field="' + escapeHtml(key) + '" type="text" autocomplete="off">'}
+        ${inputMarkup}
+        ${datalistMarkup}
       </div>`;
   }).join("");
   if (draft) {
@@ -358,6 +399,10 @@ async function saveFile(blob, filename) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
+
+$("darkModeToggle").addEventListener("change", saveDisplayPreferences);
+$("fontScale").addEventListener("input", saveDisplayPreferences);
+applyDisplayPreferences();
 
 $("activeProject").addEventListener("change", () => {
   if (!storageReady) return;
@@ -723,15 +768,39 @@ $("exportXlsx").addEventListener("click", async () => {
     alert("Failed to create or save the Excel file: " + error.message);
   }
 });
+$("exportPdf").addEventListener("click", async () => {
+  if (!storageReady) return;
+  const project = workspace.projects.find(item => item.id === activeProjectId);
+  if (!project) return;
+  try {
+    const observations = rows.filter(record => record.projectId === activeProjectId);
+    const samples = workspace.samples.filter(sample => sample.projectId === activeProjectId);
+    const bytes = await buildProjectReport({ project, observations, samples });
+    const safeCode = (project.code || project.name || "Project").replace(/[^a-z0-9_-]+/gi, "-");
+    await saveFile(new Blob([bytes], { type: "application/pdf" }), "GeoField-" + safeCode + "-Report.pdf");
+  } catch (error) {
+    console.error("PDF report generation failed:", error);
+    alert("The PDF report could not be generated: " + error.message);
+  }
+});
+
 $("backup").addEventListener("click", async () => {
   if (!storageReady) return;
+  const password = prompt("Create a backup password (at least 10 characters). This password is not stored. If you lose it, the backup cannot be recovered.");
+  if (password === null) return;
+  const confirmation = prompt("Re-enter the backup password.");
+  if (confirmation === null) return;
+  if (password !== confirmation) {
+    alert("The passwords do not match. No backup was created.");
+    return;
+  }
   try {
-    const blob = new Blob([JSON.stringify({ app: "GeoField", version: 4, workspace }, null, 2)], {
-      type: "application/json"
-    });
-    await saveFile(blob, "GeoField-Backup.json");
+    const payload = { app: "GeoField", version: 4, workspace };
+    const encrypted = await encryptBackupPayload(payload, password);
+    const blob = new Blob([JSON.stringify(encrypted, null, 2)], { type: "application/json" });
+    await saveFile(blob, "GeoField-Encrypted-Backup.json");
   } catch (error) {
-    alert("Failed to create the backup file: " + error.message);
+    alert("Failed to create the encrypted backup: " + error.message);
   }
 });
 
@@ -744,7 +813,14 @@ $("restoreFile").addEventListener("change", async event => {
   if (!file) return;
   try {
     if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 10 MB size limit.");
-    const parsed = JSON.parse(await file.text());
+    let parsed = JSON.parse(await file.text());
+    if (isEncryptedBackup(parsed)) {
+      const password = prompt("Enter the password for this GeoField backup.");
+      if (password === null) return;
+      parsed = await decryptBackupPayload(parsed, password);
+    } else if (!confirm("This is a legacy unencrypted backup. Continue restoring it? New backups created by GeoField are password-encrypted.")) {
+      return;
+    }
     let incomingWorkspace;
     if (parsed && typeof parsed === "object" && parsed.workspace) {
       incomingWorkspace = validateWorkspace(parsed.workspace);
