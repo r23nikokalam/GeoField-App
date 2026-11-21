@@ -66,6 +66,14 @@ body.dark-mode footer{color:#a8c0c4}
 body.dark-mode .storage-status{background:#183c40;color:#c4f0ee;border-color:#34777a}
 body.dark-mode .storage-status.storage-error{background:#442a2d;color:#ffd8d8;border-color:#a85a60}
 body.dark-mode .watermark{opacity:.035}
+
+dialog{width:min(430px,calc(100% - 24px));max-width:100%;border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;color:var(--ink);box-shadow:0 16px 48px #0004}
+dialog::backdrop{background:#071b20a8}
+dialog form{margin:0}
+dialog .field{align-items:center}
+.password-error{min-height:18px;margin:5px 0;color:#b83d42;font-size:12px}
+body.dark-mode dialog{background:#1b3036;color:#e1eff0;border-color:#45636a}
+body.dark-mode .password-error{color:#ffaaaa}
 </style>
 </head>
 <body>
@@ -207,6 +215,25 @@ body.dark-mode .watermark{opacity:.035}
   <div id="records"><div class="empty">No observations have been recorded yet.</div></div>
 </section>
 </main>
+<dialog id="backupPasswordDialog" aria-labelledby="backupPasswordTitle">
+  <form id="backupPasswordForm">
+    <h2 id="backupPasswordTitle">Encrypted Backup</h2>
+    <p id="backupPasswordHint" class="small"></p>
+    <div class="field">
+      <label for="backupPasswordInput">Password</label>
+      <input id="backupPasswordInput" type="password" minlength="10" maxlength="256" required autocomplete="new-password">
+    </div>
+    <div class="field" id="backupPasswordConfirmField">
+      <label for="backupPasswordConfirm">Confirm Password</label>
+      <input id="backupPasswordConfirm" type="password" minlength="10" maxlength="256" autocomplete="new-password">
+    </div>
+    <p id="backupPasswordError" class="password-error" role="alert"></p>
+    <div class="actions">
+      <button type="submit" id="backupPasswordSubmit">Continue</button>
+      <button type="button" id="backupPasswordCancel" class="secondary">Cancel</button>
+    </div>
+  </form>
+</dialog>
 <footer>Created by Engineer Roohollah Nikokalam</footer>
 <script type="module" src="./bundle.js"></script>
 </body>
