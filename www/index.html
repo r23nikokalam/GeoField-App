@@ -8,18 +8,18 @@
 <meta name="theme-color" content="#087f91">
 <title>GeoField | Field Notebook</title>
 <style>
-:root{--teal:#0796a5;--teal-dark:#056b78;--teal-soft:#d9f5f5;--bg:#effbfb;--line:#c8e9e9;--ink:#153f45;--muted:#587b80;--white:#fff;--danger:#b83d42}
+:root{--font-scale:1;--teal:#0796a5;--teal-dark:#056b78;--teal-soft:#d9f5f5;--bg:#effbfb;--line:#c8e9e9;--ink:#153f45;--muted:#587b80;--white:#fff;--danger:#b83d42}
 *{box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
 body{margin:0;min-height:100vh;color:var(--ink);font-family:Arial,Helvetica,sans-serif;background:linear-gradient(145deg,#f0fcfc,#d8f4f5)}
 .watermark{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.075}
 header,main,footer{position:relative;z-index:1}
 header{background:linear-gradient(115deg,var(--teal-dark),var(--teal));color:white;padding:17px 16px 15px;box-shadow:0 3px 14px #064d5b24}
-header h1{margin:0;font-size:23px;letter-spacing:.3px}
+header h1{margin:0;font-size:calc(23px * var(--font-scale));letter-spacing:.3px}
 header p{margin:6px 0 0;color:#d9f6f6;font-size:12px}
 main{width:min(100%,850px);margin:auto;padding:13px 12px 20px}
 .panel{background:#ffffffed;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:12px;box-shadow:0 4px 16px #075c6b0d;backdrop-filter:blur(2px)}
-h2{font-size:15px;margin:0 0 11px}
+h2{font-size:calc(15px * var(--font-scale));margin:0 0 11px}
 .section-list{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:thin}
 .section-btn{flex:0 0 auto;min-width:105px;background:#e5f3f4;color:var(--teal-dark);border:1px solid #c6e3e5;padding:10px 12px}
 .section-btn.active{background:var(--teal);color:white;border-color:var(--teal)}
@@ -27,28 +27,45 @@ h2{font-size:15px;margin:0 0 11px}
 .fields-grid{display:flex;flex-direction:column;gap:7px}
 .field{display:flex;align-items:center;gap:9px;min-height:42px;border-bottom:1px solid #e8f0f0;padding:4px 0}
 .field:last-child{border-bottom:0}
-.field label{flex:0 0 34%;font-size:12px;font-weight:bold;overflow-wrap:anywhere;direction:ltr;text-align:left}
-.field input,.field textarea,.field select{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:13px Arial,Helvetica,sans-serif;background:#fff;color:var(--ink);direction:ltr;text-align:left}
+.field label{flex:0 0 34%;font-size:calc(12px * var(--font-scale));font-weight:bold;overflow-wrap:anywhere;direction:ltr;text-align:left}
+.field input,.field textarea,.field select{flex:1;min-width:0;width:0;border:1px solid #c8dcde;border-radius:8px;padding:9px 10px;font:calc(13px * var(--font-scale)) Arial,Helvetica,sans-serif;background:#fff;color:var(--ink);direction:ltr;text-align:left}
 .field textarea{min-height:66px;resize:vertical}
 .field input:focus,.field textarea:focus,.field select:focus{outline:2px solid #a8dfe3;border-color:var(--teal)}
 .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
-button{border:0;border-radius:8px;padding:10px 12px;font:bold 12px Arial,Helvetica,sans-serif;cursor:pointer;background:var(--teal);color:white;white-space:nowrap}
+button{border:0;border-radius:8px;padding:10px 12px;font:bold calc(12px * var(--font-scale)) Arial,Helvetica,sans-serif;cursor:pointer;background:var(--teal);color:white;white-space:nowrap}
 button.secondary{background:#e5f1f2;color:var(--teal-dark);border:1px solid #c8e1e3}
 button.danger{background:var(--danger)}
 button:disabled{opacity:.5;cursor:not-allowed}
 .topline{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.small{font-size:11px;color:var(--muted)}
+.small{font-size:calc(11px * var(--font-scale));color:var(--muted)}
 .record{border:1px solid var(--line);border-radius:10px;padding:10px;margin:9px 0;background:#fff}
-.record h3{font-size:13px;margin:0 0 6px;overflow-wrap:anywhere}
-.record p{font-size:11px;margin:4px 0;line-height:1.7;overflow-wrap:anywhere}
+.record h3{font-size:calc(13px * var(--font-scale));margin:0 0 6px;overflow-wrap:anywhere}
+.record p{font-size:calc(11px * var(--font-scale));margin:4px 0;line-height:1.7;overflow-wrap:anywhere}
 .record .actions{margin-top:8px}
 .empty{text-align:center;color:#718b8f;padding:18px 5px;font-size:12px}
-.storage-status{width:min(100%,850px);margin:10px auto 0;padding:10px 13px;border:1px solid #9edbdc;border-radius:10px;background:#e3f8f7;color:#075d68;font-size:12px;line-height:1.6;direction:ltr;text-align:left}
+.storage-status{width:min(100%,850px);margin:10px auto 0;padding:10px 13px;border:1px solid #9edbdc;border-radius:10px;background:#e3f8f7;color:#075d68;font-size:calc(12px * var(--font-scale));line-height:1.6;direction:ltr;text-align:left}
 .storage-status.storage-error{border-color:#d99b9b;background:#fff0f0;color:#8c2429}
 .hidden{display:none!important}
-footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direction:ltr}
+footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:calc(11px * var(--font-scale));direction:ltr}
 #restoreFile{display:none}
 @media(min-width:620px){main{padding:18px}.panel{padding:17px}.field label{flex-basis:27%}.fields-grid{gap:8px}}
+
+.field input[type="checkbox"]{flex:0 0 20px;width:20px;min-height:20px;accent-color:var(--teal)}
+.field input[type="range"]{width:auto;min-width:0;accent-color:var(--teal)}
+body.dark-mode{--bg:#111d21;--line:#345159;--ink:#e1eff0;--muted:#a8c0c4;--white:#1b2c31;--danger:#b94a50;background:linear-gradient(145deg,#101a1e,#172a30);color:var(--ink)}
+body.dark-mode .panel{background:#1b3036;border-color:#345159;box-shadow:0 4px 16px #0005}
+body.dark-mode .field{border-bottom-color:#30484e}
+body.dark-mode .field input,body.dark-mode .field textarea,body.dark-mode .field select{background:#122329;color:#e1eff0;border-color:#45636a}
+body.dark-mode .section-btn{background:#213a40;color:#bde5e7;border-color:#3b5c63}
+body.dark-mode .section-btn.active{background:var(--teal);color:#fff}
+body.dark-mode .record{background:#20363c;border-color:#3a5960}
+body.dark-mode .record p,body.dark-mode .record h3{color:#e1eff0}
+body.dark-mode button.secondary{background:#29454b;color:#d1eff0;border-color:#45636a}
+body.dark-mode .empty{color:#a8c0c4}
+body.dark-mode footer{color:#a8c0c4}
+body.dark-mode .storage-status{background:#183c40;color:#c4f0ee;border-color:#34777a}
+body.dark-mode .storage-status.storage-error{background:#442a2d;color:#ffd8d8;border-color:#a85a60}
+body.dark-mode .watermark{opacity:.035}
 </style>
 </head>
 <body>
@@ -65,6 +82,18 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
 <header><h1>GeoField</h1><p>Geological Field Observation Notebook</p></header>
 <div id="storageStatus" class="storage-status" role="status" aria-live="polite" hidden></div>
 <main>
+<section class="panel" aria-labelledby="displaySettingsTitle">
+  <h2 id="displaySettingsTitle">Display Settings</h2>
+  <div class="field">
+    <label for="darkModeToggle">Dark Mode</label>
+    <input class="setting-toggle" id="darkModeToggle" type="checkbox">
+  </div>
+  <div class="field">
+    <label for="fontScale">Font Size</label>
+    <input id="fontScale" type="range" min="0.9" max="1.3" step="0.05" value="1">
+    <output id="fontScaleValue">100%</output>
+  </div>
+</section>
 <section class="panel" aria-labelledby="projectWorkspaceTitle">
   <div class="topline"><h2 id="projectWorkspaceTitle">Project Workspace</h2></div>
   <div class="field">
@@ -169,8 +198,9 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
   <div class="field"><label for="filterDateTo">Date To</label><input id="filterDateTo" type="date"></div>
   <div class="actions">
     <button type="button" id="exportXlsx">Export Excel (XLSX)</button>
-    <button type="button" class="secondary" id="backup">Backup JSON</button>
-    <button type="button" class="secondary" id="restoreBtn">Restore JSON</button>
+    <button type="button" id="exportPdf" class="secondary">Export PDF Report</button>
+    <button type="button" class="secondary" id="backup">Encrypted Backup JSON</button>
+    <button type="button" class="secondary" id="restoreBtn">Restore Backup</button>
     <input id="restoreFile" type="file" accept="application/json,.json">
     <button type="button" class="danger" id="clearAll">Delete All</button>
   </div>
