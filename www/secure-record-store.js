@@ -133,17 +133,25 @@ export class SecureRecordStore {
         let workspace;
         if (Array.isArray(parsed)) {
           const secureRecords = validateRecords(parsed, normaliseRecord);
-          workspace = migrate(secureRecords);
-          await verifyWrite(workspace.json);
           if (legacyRaw !== null &&
               JSON.stringify(parseLegacy(legacyRaw)) !== JSON.stringify(secureRecords)) {
             throw new Error("Encrypted and local legacy records differ. Both copies were retained; editing is locked.");
           }
+          workspace = migrate(secureRecords);
+          await verifyWrite(workspace.json);
         } else {
           workspace = pack(validateWorkspace(parsed));
-          if (legacyRaw !== null &&
-              JSON.stringify(parseLegacy(legacyRaw)) !== JSON.stringify(workspace.validated.observations)) {
-            throw new Error("Encrypted workspace and local legacy records differ. Both copies were retained; editing is locked.");
+          if (legacyRaw !== null) {
+            const localRecords = parseLegacy(legacyRaw);
+            const withoutProjectLink = records => records.map(record => {
+              const copy = { ...record };
+              delete copy.projectId;
+              return copy;
+            });
+            if (JSON.stringify(withoutProjectLink(localRecords)) !==
+                JSON.stringify(withoutProjectLink(workspace.validated.observations))) {
+              throw new Error("Encrypted workspace and local legacy records differ. Both copies were retained; editing is locked.");
+            }
           }
         }
         if (legacyRaw !== null) localStorage.removeItem(LEGACY_STORAGE_KEY);
