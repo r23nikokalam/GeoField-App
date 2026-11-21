@@ -103,7 +103,9 @@ public class SecureStoragePlugin extends Plugin {
     @PluginMethod
     public void load(PluginCall call) {
         AtomicFile file = getDataFile();
-        if (!file.getBaseFile().exists()) {
+        File baseFile = file.getBaseFile();
+        File backupFile = new File(baseFile.getPath() + ".bak");
+        if (!baseFile.exists() && !backupFile.exists()) {
             JSObject result = new JSObject();
             result.put("found", false);
             result.put("plaintext", "");
