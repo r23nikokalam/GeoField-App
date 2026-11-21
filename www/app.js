@@ -35,7 +35,7 @@ let draft = null;
 let storageReady = false;
 let editingSampleId = null;
 
-const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+const MAX_BACKUP_BYTES = 15 * 1024 * 1024;
 const MAX_FIELD_LENGTH = 20000;
 const MAX_ID_LENGTH = 128;
 
@@ -812,7 +812,7 @@ $("restoreFile").addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
   try {
-    if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 10 MB size limit.");
+    if (file.size > MAX_BACKUP_BYTES) throw new Error("The backup file exceeds the 15 MB size limit.");
     let parsed = JSON.parse(await file.text());
     if (isEncryptedBackup(parsed)) {
       const password = prompt("Enter the password for this GeoField backup.");
