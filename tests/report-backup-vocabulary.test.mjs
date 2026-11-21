@@ -24,7 +24,7 @@ test("encrypted backup rejects wrong passwords and modified ciphertext", async (
 });
 
 test("encrypted backup enforces a minimum password length", async () => {
-  await assert.rejects(() => encryptBackupPayload({}, "short"), /10 characters/i);
+  await assert.rejects(() => encryptBackupPayload({}, "short"), /10 and 256 characters/i);
 });
 
 test("PDF report creates a readable PDF with project, observation and sample content", async () => {
