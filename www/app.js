@@ -660,27 +660,69 @@ $("records").addEventListener("click", async event => {
 
 $("exportXlsx").addEventListener("click", async () => {
   if (!storageReady) return;
+  const project = workspace.projects.find(item => item.id === activeProjectId);
+  if (!project) return;
   const projectRows = rows.filter(record => record.projectId === activeProjectId);
-  if (!projectRows.length) {
-    alert("There are no records in this project to export yet.");
+  const projectSamples = workspace.samples.filter(sample => sample.projectId === activeProjectId);
+  if (!projectRows.length && !projectSamples.length) {
+    alert("There are no observations or samples in this project to export yet.");
     return;
   }
   try {
-    const data = [fieldNames, ...projectRows.map(record => fieldNames.map(key => record[key] || ""))];
-    const sheet = XLSX.utils.aoa_to_sheet(data);
-    sheet["!cols"] = fieldNames.map(() => ({ wch: 20 }));
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, "GeoField");
+    const projectData = [
+      ["Project Property", "Value"],
+      ["Project Name", project.name],
+      ["Project Code", project.code],
+      ["Client", project.client],
+      ["Project Area", project.area],
+      ["Description", project.description],
+      ["Coordinate System", project.coordinateSystem || "Unknown"],
+      ["Horizontal Datum", project.datum || "Unknown"],
+      ["UTM Zone", project.utmZone || "Unknown"],
+      ["Hemisphere", project.hemisphere || "Unknown"],
+      ["Horizontal Unit", project.horizontalUnit || "Unknown"],
+      ["Vertical Datum", project.verticalDatum || "Unknown"],
+      ["Elevation Unit", project.elevationUnit || "Unknown"],
+      ["Created At", project.createdAt],
+      ["Last Updated", project.updatedAt],
+      ["Exported At", new Date().toISOString()]
+    ];
+    const projectSheet = XLSX.utils.aoa_to_sheet(projectData);
+    projectSheet["!cols"] = [{ wch: 24 }, { wch: 48 }];
+    XLSX.utils.book_append_sheet(book, projectSheet, "Project");
+
+    const observationHeaders = ["Record ID", ...fieldNames];
+    const observationData = [
+      observationHeaders,
+      ...projectRows.map(record => [record.id, ...fieldNames.map(key => record[key] || "")])
+    ];
+    const observationSheet = XLSX.utils.aoa_to_sheet(observationData);
+    observationSheet["!cols"] = observationHeaders.map(() => ({ wch: 20 }));
+    XLSX.utils.book_append_sheet(book, observationSheet, "Observations");
+
+    const sampleHeaders = ["Sample ID", "Sample Code", "Sample Type", "Material", "Observation ID", "Notes", "Collected At"];
+    const sampleData = [
+      sampleHeaders,
+      ...projectSamples.map(sample => [
+        sample.id, sample.code, sample.sampleType, sample.material,
+        sample.observationId, sample.notes, sample.collectedAt
+      ])
+    ];
+    const sampleSheet = XLSX.utils.aoa_to_sheet(sampleData);
+    sampleSheet["!cols"] = sampleHeaders.map(() => ({ wch: 22 }));
+    XLSX.utils.book_append_sheet(book, sampleSheet, "Samples");
+
     const bytes = XLSX.write(book, { bookType: "xlsx", type: "array" });
+    const safeCode = (project.code || project.name || "Project").replace(/[^a-z0-9_-]+/gi, "-");
     await saveFile(new Blob([bytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    }), "GeoField-Observations.xlsx");
+    }), "GeoField-" + safeCode + "-Export.xlsx");
   } catch (error) {
     console.error(error);
     alert("Failed to create or save the Excel file: " + error.message);
   }
 });
-
 $("backup").addEventListener("click", async () => {
   if (!storageReady) return;
   try {
