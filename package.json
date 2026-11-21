@@ -13,7 +13,8 @@
     "@capacitor/filesystem": "7.1.9",
     "@capacitor/share": "7.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "@capacitor/geolocation": "7.1.8"
+    "@capacitor/geolocation": "7.1.8",
+    "pdf-lib": "1.17.1"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.10",
