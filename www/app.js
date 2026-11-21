@@ -17,6 +17,7 @@ const $ = id => document.getElementById(id);
 let rows = [];
 let editingId = null;
 let activeSection = null;
+let draft = null;
 
 function normaliseRecord(source, index = 0) {
   const legacy = source && typeof source === "object" ? { ...source } : {};
@@ -88,6 +89,7 @@ function render() {
 function setSection(sectionName) {
   const section = sections.find(item => item.name === sectionName);
   if (!section) return;
+  saveActiveSection();
   activeSection = sectionName;
   $("fieldsPanel").hidden = false;
   $("sectionTitle").textContent = section.name;
@@ -102,6 +104,12 @@ function setSection(sectionName) {
           : '<input id="' + safeId + '" data-field="' + escapeHtml(key) + '" type="text" autocomplete="off">'}
       </div>`;
   }).join("");
+  if (draft) {
+    for (const key of section.fields) {
+      const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
+      if (element) element.value = draft[key] || "";
+    }
+  }
   document.querySelectorAll(".section-btn").forEach(button => {
     button.classList.toggle("active", button.dataset.section === sectionName);
   });
@@ -125,20 +133,26 @@ function fillActiveSection(record) {
   }
   updateProgress();
 }
+function saveActiveSection() {
+  if (!activeSection || !draft) return;
+  const section = sections.find(item => item.name === activeSection);
+  for (const key of section.fields) {
+    const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
+    if (element) draft[key] = element.value.trim();
+  }
+}
 function collectForm() {
+  saveActiveSection();
   const item = { id: editingId || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) };
   const existing = editingId ? rows.find(record => record.id === editingId) : null;
   if (existing?._legacy) item._legacy = existing._legacy;
-  for (const key of fieldNames) {
-    const oldValue = existing ? existing[key] : "";
-    const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
-    item[key] = element ? element.value.trim() : (oldValue || "");
-  }
+  for (const key of fieldNames) item[key] = String(draft?.[key] ?? "");
   return item;
 }
 function resetForm() {
   editingId = null;
   activeSection = null;
+  draft = null;
   $("entryForm").reset();
   $("fieldsPanel").hidden = true;
   $("fieldsGrid").innerHTML = "";
@@ -151,6 +165,8 @@ function resetForm() {
 function beginEdit(id) {
   const record = rows.find(item => item.id === id);
   if (!record) return;
+  resetForm();
+  draft = { ...record };
   editingId = id;
   $("saveBtn").textContent = "ذخیره تغییرات";
   $("cancelEdit").classList.remove("hidden");
@@ -162,25 +178,8 @@ function beginEdit(id) {
 $("sectionList").addEventListener("click", event => {
   const button = event.target.closest("[data-section]");
   if (!button) return;
-  const previousSection = activeSection;
-  const previousValues = {};
-  if (previousSection) {
-    const old = sections.find(item => item.name === previousSection);
-    for (const key of old.fields) {
-      const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
-      if (element) previousValues[key] = element.value;
-    }
-  }
+  if (!draft) draft = {};
   setSection(button.dataset.section);
-  for (const [key, value] of Object.entries(previousValues)) {
-    const element = document.querySelector('[data-field="' + CSS.escape(key) + '"]');
-    if (element) element.value = value;
-  }
-  if (editingId) {
-    const record = rows.find(item => item.id === editingId);
-    if (record) fillActiveSection(record);
-  }
-  updateProgress();
 });
 $("fieldsGrid").addEventListener("input", updateProgress);
 
