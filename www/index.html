@@ -88,6 +88,14 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
     <div class="field"><label for="editProjectClient">Client</label><input id="editProjectClient" maxlength="120"></div>
     <div class="field"><label for="editProjectArea">Project Area</label><input id="editProjectArea" maxlength="160"></div>
     <div class="field"><label for="editProjectDescription">Description</label><textarea id="editProjectDescription" rows="2" maxlength="2000"></textarea></div>
+    <h2>Coordinate Reference System (CRS)</h2>
+    <div class="field"><label for="editCoordinateSystem">Coordinate System</label><select id="editCoordinateSystem"><option>Unknown</option><option>Geographic</option><option>UTM</option><option>Local</option></select></div>
+    <div class="field"><label for="editDatum">Horizontal Datum</label><input id="editDatum" maxlength="80" placeholder="e.g. WGS 84"></div>
+    <div class="field"><label for="editUtmZone">UTM Zone</label><input id="editUtmZone" type="number" min="1" max="60" step="1" placeholder="1–60"></div>
+    <div class="field"><label for="editHemisphere">Hemisphere</label><select id="editHemisphere"><option value="">Unknown</option><option value="N">North</option><option value="S">South</option></select></div>
+    <div class="field"><label for="editHorizontalUnit">Horizontal Unit</label><select id="editHorizontalUnit"><option value="">Unknown</option><option>metre</option><option>foot</option><option>degree</option></select></div>
+    <div class="field"><label for="editVerticalDatum">Vertical Datum</label><input id="editVerticalDatum" maxlength="100" placeholder="Leave blank if unknown"></div>
+    <div class="field"><label for="editElevationUnit">Elevation Unit</label><select id="editElevationUnit"><option value="">Unknown</option><option>metre</option><option>foot</option></select></div>
     <div class="actions"><button type="submit">Save Project Details</button><button type="button" id="cancelProjectEdit" class="secondary">Cancel</button></div>
   </form>
 </section>
