@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { Geolocation } from "@capacitor/geolocation";
 import { SecureRecordStore, validateRecords } from "./secure-record-store.js";
 import { createProject, createSample, migrateLegacyRecords, validateWorkspace } from "./domain-model.js";
 
@@ -13,7 +14,7 @@ const recordStore = new SecureRecordStore({
 
 const sections = [
   { name: "Project", fields: ["FID","Id","WPT_NO","Date","Geologist","Profile_No"] },
-  { name: "Coordinate", fields: ["X_UTM","Y_UTM","Z_UTM"] },
+  { name: "Coordinate", fields: ["X_UTM","Y_UTM","Z_UTM","GPS_Latitude","GPS_Longitude","GPS_Accuracy_m","GPS_Altitude_m","GPS_Timestamp"] },
   { name: "Geology", fields: ["Lithology","colour","colour Modifier","Contact","Altration","Weak","Moderate","Strong","Mineral","Structur"] },
   { name: "Layer Structure", fields: ["Azimut_lay","Dip","DDirection","Length","Thickness"] },
   { name: "Fault", fields: ["Type_Fault","Azim_Fault","Dip_Fault","Dddirection_Fault"] },
@@ -29,6 +30,7 @@ let editingId = null;
 let activeSection = null;
 let draft = null;
 let storageReady = false;
+let editingSampleId = null;
 
 const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
 const MAX_FIELD_LENGTH = 20000;
@@ -166,22 +168,39 @@ function renderSamples() {
       (sample.material ? '<p><b>Material:</b> ' + escapeHtml(sample.material) + '</p>' : '') +
       (linked ? '<p><b>Observation:</b> ' + escapeHtml(linked.WPT_NO || linked.Profile_No || linked.id) + '</p>' : '') +
       (sample.notes ? '<p>' + escapeHtml(sample.notes) + '</p>' : '') +
-      '<div class="actions"><button type="button" class="danger" data-delete-sample="' +
+      '<div class="actions"><button type="button" class="secondary" data-edit-sample="' +
+      escapeHtml(sample.id) + '">Edit</button><button type="button" class="danger" data-delete-sample="' +
       escapeHtml(sample.id) + '">Delete Sample</button></div></article>';
   }).join("");
 }
 
 function render() {
   const projectRows = rows.filter(record => record.projectId === activeProjectId);
-  $("count").textContent = projectRows.length.toLocaleString("en-US") + " records";
-  if (!projectRows.length) {
-    $("records").innerHTML = '<div class="empty">No observations in this project yet.</div>';
+  const query = $("recordSearch").value.trim().toLocaleLowerCase();
+  const geologist = $("filterGeologist").value.trim().toLocaleLowerCase();
+  const lithology = $("filterLithology").value.trim().toLocaleLowerCase();
+  const dateFrom = $("filterDateFrom").value;
+  const dateTo = $("filterDateTo").value;
+  const filteredRows = projectRows.filter(record => {
+    if (query && ![record.id, ...fieldNames.map(key => record[key] || "")]
+      .join(" ").toLocaleLowerCase().includes(query)) return false;
+    if (geologist && !String(record.Geologist || "").toLocaleLowerCase().includes(geologist)) return false;
+    if (lithology && !String(record.Lithology || "").toLocaleLowerCase().includes(lithology)) return false;
+    const date = String(record.Date || "").slice(0, 10);
+    if (dateFrom && (!date || date < dateFrom)) return false;
+    if (dateTo && (!date || date > dateTo)) return false;
+    return true;
+  });
+  $("count").textContent = filteredRows.length.toLocaleString("en-US") +
+    " of " + projectRows.length.toLocaleString("en-US") + " records";
+  if (!filteredRows.length) {
+    $("records").innerHTML = '<div class="empty">No observations match the current filters.</div>';
     return;
   }
-  $("records").innerHTML = projectRows.slice().reverse().map(record => {
+  $("records").innerHTML = filteredRows.slice().reverse().map(record => {
     const title = record.WPT_NO || record.Profile_No || record.Lithology || record.Id || "Saved observation";
-    const summaryKeys = ["Date","Geologist","Lithology","X_UTM","Y_UTM","Z_UTM","Mineral","Describe"];
-    const summary = summaryKeys.filter(key => record[key]).slice(0, 5)
+    const summaryKeys = ["Date","Geologist","Lithology","X_UTM","Y_UTM","Z_UTM","GPS_Latitude","GPS_Longitude","Mineral","Describe"];
+    const summary = summaryKeys.filter(key => record[key]).slice(0, 6)
       .map(key => '<p><b>' + escapeHtml(key) + ':</b> ' + escapeHtml(record[key]) + '</p>').join("");
     const filled = fieldNames.filter(key => record[key]).length;
     return `
@@ -195,7 +214,6 @@ function render() {
       </article>`;
   }).join("");
 }
-
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -219,6 +237,7 @@ function setSection(sectionName) {
   saveActiveSection();
   activeSection = sectionName;
   $("fieldsPanel").hidden = false;
+  $("gpsControls").hidden = section.name !== "Coordinate";
   $("sectionTitle").textContent = section.name;
   $("fieldsGrid").innerHTML = section.fields.map(key => {
     const safeId = "field-" + fieldNames.indexOf(key);
@@ -341,6 +360,7 @@ async function saveFile(blob, filename) {
 $("activeProject").addEventListener("change", () => {
   if (!storageReady) return;
   activeProjectId = $("activeProject").value;
+  resetSampleForm();
   renderSamples();
   render();
   resetForm();
@@ -457,26 +477,39 @@ $("deleteProject").addEventListener("click", async () => {
   }
 });
 
+function resetSampleForm() {
+  editingSampleId = null;
+  $("sampleForm").reset();
+  $("saveSampleBtn").textContent = "Save Sample";
+  $("cancelSampleEdit").classList.add("hidden");
+}
+
+$("cancelSampleEdit").addEventListener("click", resetSampleForm);
 $("sampleForm").addEventListener("submit", async event => {
   event.preventDefault();
   if (!storageReady || !activeProjectId) return;
   try {
+    const existing = editingSampleId ? workspace.samples.find(item => item.id === editingSampleId) : null;
+    if (editingSampleId && !existing) throw new Error("The sample no longer exists.");
     const sample = createSample({
+      id: existing?.id,
       code: $("sampleCode").value,
       sampleType: $("sampleType").value,
       material: $("sampleMaterial").value,
       observationId: $("sampleObservation").value,
       notes: $("sampleNotes").value,
-      projectId: activeProjectId,
-      collectedAt: new Date().toISOString()
+      projectId: existing?.projectId || activeProjectId,
+      collectedAt: existing?.collectedAt || new Date().toISOString()
     });
     const nextWorkspace = validateWorkspace({
       ...workspace,
-      samples: [...workspace.samples, sample]
+      samples: existing
+        ? workspace.samples.map(item => item.id === editingSampleId ? sample : item)
+        : [...workspace.samples, sample]
     });
     await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
     workspace = nextWorkspace;
-    $("sampleForm").reset();
+    resetSampleForm();
     renderSamples();
   } catch (error) {
     alert("The sample could not be saved: " + error.message);
@@ -484,19 +517,73 @@ $("sampleForm").addEventListener("submit", async event => {
 });
 
 $("sampleList").addEventListener("click", async event => {
-  const button = event.target.closest("[data-delete-sample]");
-  if (!button || !storageReady) return;
-  if (!confirm("Delete this sample record?")) return;
+  const editButton = event.target.closest("[data-edit-sample]");
+  const deleteButton = event.target.closest("[data-delete-sample]");
+  if (!storageReady) return;
+  if (editButton) {
+    const sample = workspace.samples.find(item => item.id === editButton.dataset.editSample);
+    if (!sample) return;
+    editingSampleId = sample.id;
+    $("sampleCode").value = sample.code;
+    $("sampleType").value = sample.sampleType;
+    $("sampleMaterial").value = sample.material;
+    $("sampleObservation").value = sample.observationId;
+    $("sampleNotes").value = sample.notes;
+    $("saveSampleBtn").textContent = "Save Changes";
+    $("cancelSampleEdit").classList.remove("hidden");
+    $("sampleForm").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  if (!deleteButton || !confirm("Delete this sample record?")) return;
   try {
     const nextWorkspace = validateWorkspace({
       ...workspace,
-      samples: workspace.samples.filter(sample => sample.id !== button.dataset.deleteSample)
+      samples: workspace.samples.filter(sample => sample.id !== deleteButton.dataset.deleteSample)
     });
     await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
     workspace = nextWorkspace;
+    if (editingSampleId === deleteButton.dataset.deleteSample) resetSampleForm();
     renderSamples();
   } catch (error) {
     alert("The sample could not be deleted: " + error.message);
+  }
+});
+$("gpsCapture").addEventListener("click", async () => {
+  if (!storageReady || activeSection !== "Coordinate") return;
+  const button = $("gpsCapture");
+  const status = $("gpsStatus");
+  button.disabled = true;
+  status.textContent = "Requesting current position…";
+  try {
+    if (Capacitor.isNativePlatform()) {
+      let permission = await Geolocation.checkPermissions();
+      if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
+        permission = await Geolocation.requestPermissions();
+      }
+      if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
+        throw new Error("Location permission was not granted.");
+      }
+    }
+    const position = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0
+    });
+    if (!draft) draft = {};
+    draft.GPS_Latitude = position.coords.latitude.toFixed(7);
+    draft.GPS_Longitude = position.coords.longitude.toFixed(7);
+    draft.GPS_Accuracy_m = Number.isFinite(position.coords.accuracy) ? position.coords.accuracy.toFixed(1) : "";
+    draft.GPS_Altitude_m = Number.isFinite(position.coords.altitude) ? position.coords.altitude.toFixed(1) : "";
+    draft.GPS_Timestamp = new Date(position.timestamp || Date.now()).toISOString();
+    fillActiveSection(draft);
+    status.textContent = "Captured in WGS 84 (EPSG:4326). Accuracy: " +
+      (draft.GPS_Accuracy_m ? draft.GPS_Accuracy_m + " m" : "unknown") +
+      ". Review before saving the observation.";
+  } catch (error) {
+    console.error("GPS capture failed:", error);
+    status.textContent = "Position unavailable: " + (error.message || "Check location services and permissions.");
+  } finally {
+    button.disabled = !storageReady;
   }
 });
 
@@ -508,6 +595,9 @@ $("sectionList").addEventListener("click", event => {
   setSection(button.dataset.section);
 });
 $("fieldsGrid").addEventListener("input", updateProgress);
+["recordSearch","filterGeologist","filterLithology","filterDateFrom","filterDateTo"].forEach(id => {
+  $(id).addEventListener("input", render);
+});
 
 $("entryForm").addEventListener("submit", async event => {
   event.preventDefault();
