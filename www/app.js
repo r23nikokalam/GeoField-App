@@ -312,6 +312,8 @@ function resetForm() {
   draft = null;
   $("entryForm").reset();
   $("fieldsPanel").hidden = true;
+  $("gpsControls").hidden = true;
+  $("gpsStatus").textContent = "";
   $("fieldsGrid").innerHTML = "";
   $("sectionTitle").textContent = "";
   $("fieldProgress").textContent = "";
@@ -491,6 +493,11 @@ $("sampleForm").addEventListener("submit", async event => {
   try {
     const existing = editingSampleId ? workspace.samples.find(item => item.id === editingSampleId) : null;
     if (editingSampleId && !existing) throw new Error("The sample no longer exists.");
+    const normalizedCode = $("sampleCode").value.trim().toLocaleLowerCase();
+    if (workspace.samples.some(item => item.projectId === activeProjectId &&
+        item.id !== editingSampleId && item.code.trim().toLocaleLowerCase() === normalizedCode)) {
+      throw new Error("A sample with this code already exists in the active project.");
+    }
     const sample = createSample({
       id: existing?.id,
       code: $("sampleCode").value,
