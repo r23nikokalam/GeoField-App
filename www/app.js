@@ -132,6 +132,11 @@ function renderProjects() {
   const hasProject = Boolean(activeProjectId);
   $("projectName").disabled = !storageReady;
   $("addProject").disabled = !storageReady;
+  $("editProject").disabled = !storageReady || !hasProject;
+  $("deleteProject").disabled = !storageReady || !hasProject ||
+    rows.some(record => record.projectId === activeProjectId) ||
+    workspace.samples.some(sample => sample.projectId === activeProjectId) ||
+    workspace.projects.length <= 1;
   $("activeProject").disabled = !storageReady || !hasProject;
   $("saveBtn").disabled = !storageReady || !hasProject;
 }
@@ -363,6 +368,78 @@ $("addProject").addEventListener("click", async () => {
     resetForm();
   } catch (error) {
     alert("The project could not be created: " + error.message);
+  }
+});
+
+$("editProject").addEventListener("click", () => {
+  if (!storageReady || !activeProjectId) return;
+  const project = workspace.projects.find(item => item.id === activeProjectId);
+  if (!project) return;
+  $("editProjectName").value = project.name;
+  $("editProjectCode").value = project.code;
+  $("editProjectClient").value = project.client;
+  $("editProjectArea").value = project.area;
+  $("editProjectDescription").value = project.description;
+  $("projectEditForm").hidden = false;
+});
+$("cancelProjectEdit").addEventListener("click", () => {
+  $("projectEditForm").reset();
+  $("projectEditForm").hidden = true;
+});
+$("projectEditForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!storageReady || !activeProjectId) return;
+  try {
+    const current = workspace.projects.find(item => item.id === activeProjectId);
+    if (!current) throw new Error("The selected project no longer exists.");
+    const updated = createProject({
+      ...current,
+      name: $("editProjectName").value,
+      code: $("editProjectCode").value,
+      client: $("editProjectClient").value,
+      area: $("editProjectArea").value,
+      description: $("editProjectDescription").value,
+      updatedAt: new Date().toISOString()
+    });
+    const nextWorkspace = validateWorkspace({
+      ...workspace,
+      projects: workspace.projects.map(item => item.id === activeProjectId ? updated : item)
+    });
+    await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+    workspace = nextWorkspace;
+    $("projectEditForm").hidden = true;
+    $("projectEditForm").reset();
+    renderProjects();
+    render();
+  } catch (error) {
+    alert("Project details could not be saved: " + error.message);
+  }
+});
+$("deleteProject").addEventListener("click", async () => {
+  if (!storageReady || !activeProjectId || workspace.projects.length <= 1) return;
+  const hasObservations = rows.some(record => record.projectId === activeProjectId);
+  const hasSamples = workspace.samples.some(sample => sample.projectId === activeProjectId);
+  if (hasObservations || hasSamples) {
+    alert("This project contains observations or samples. Export or remove those records before deleting the project.");
+    return;
+  }
+  const project = workspace.projects.find(item => item.id === activeProjectId);
+  if (!project || !confirm('Delete the empty project "' + project.name + '"?')) return;
+  try {
+    const nextWorkspace = validateWorkspace({
+      ...workspace,
+      projects: workspace.projects.filter(item => item.id !== activeProjectId)
+    });
+    await recordStore.saveWorkspace(nextWorkspace, validateWorkspace);
+    workspace = nextWorkspace;
+    activeProjectId = workspace.projects[0].id;
+    $("projectEditForm").hidden = true;
+    renderProjects();
+    renderSamples();
+    render();
+    resetForm();
+  } catch (error) {
+    alert("The project could not be deleted: " + error.message);
   }
 });
 
