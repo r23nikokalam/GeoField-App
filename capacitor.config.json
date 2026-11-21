@@ -1,0 +1,8 @@
+{
+  "appId": "com.geofield.fieldnotebook",
+  "appName": "GeoField",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

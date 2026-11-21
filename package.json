@@ -1,0 +1,20 @@
+{
+  "name": "geofield-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline geological field notebook for Android",
+  "scripts": {
+    "build": "esbuild www/app.js --bundle --format=esm --outfile=www/bundle.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/filesystem": "^7.4.0",
+    "@capacitor/share": "^7.0.0",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0",
+    "esbuild": "^0.25.0"
+  }
+}
