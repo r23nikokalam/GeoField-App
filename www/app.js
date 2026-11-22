@@ -16,7 +16,7 @@ const recordStore = new SecureRecordStore({
 
 const sections = [
   { name: "Project", fields: ["FID","Id","WPT_NO","Date","Geologist","Profile_No"] },
-  { name: "Coordinate", fields: ["X_UTM","Y_UTM","Z_UTM","GPS_Latitude","GPS_Longitude","GPS_Accuracy_m","GPS_Altitude_m","GPS_Timestamp"] },
+  { name: "Coordinate", fields: ["X_UTM","Y_UTM","Z_UTM"] },
   { name: "Geology", fields: ["Lithology","colour","colour Modifier","Contact","Altration","Weak","Moderate","Strong","Mineral","Structur"] },
   { name: "Layer Structure", fields: ["Azimut_lay","Dip","DDirection","Length","Thickness"] },
   { name: "Fault", fields: ["Type_Fault","Azim_Fault","Dip_Fault","Dddirection_Fault"] },
@@ -285,7 +285,7 @@ function render() {
   }
   $("records").innerHTML = filteredRows.slice().reverse().map(record => {
     const title = record.WPT_NO || record.Profile_No || record.Lithology || record.Id || "Saved observation";
-    const summaryKeys = ["Date","Geologist","Lithology","X_UTM","Y_UTM","Z_UTM","GPS_Latitude","GPS_Longitude","Mineral","Describe"];
+    const summaryKeys = ["Date","Geologist","Lithology","X_UTM","Y_UTM","Z_UTM","Mineral","Describe"];
     const summary = summaryKeys.filter(key => record[key]).slice(0, 6)
       .map(key => '<p><b>' + escapeHtml(key) + ':</b> ' + escapeHtml(record[key]) + '</p>').join("");
     const filled = fieldNames.filter(key => record[key]).length;
