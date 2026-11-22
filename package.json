@@ -8,14 +8,14 @@
     "test:storage": "node --test tests/secure-record-store.test.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "7.6.10",
-    "@capacitor/core": "7.6.10",
-    "@capacitor/filesystem": "7.1.9",
-    "@capacitor/share": "7.0.0",
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
-    "@capacitor/cli": "7.6.10",
+    "@capacitor/cli": "8.6.2",
     "esbuild": "0.25.0"
   }
 }
