@@ -43,8 +43,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .record p{font-size:11px;margin:4px 0;line-height:1.7;overflow-wrap:anywhere}
 .record .actions{margin-top:8px}
 .empty{text-align:center;color:#718b8f;padding:18px 5px;font-size:12px}
-.storage-status{width:min(100%,850px);margin:10px auto 0;padding:10px 13px;border:1px solid #9edbdc;border-radius:10px;background:#e3f8f7;color:#075d68;font-size:12px;line-height:1.6;direction:ltr;text-align:left}
-.storage-status.storage-error{border-color:#d99b9b;background:#fff0f0;color:#8c2429}
 .hidden{display:none!important}
 footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direction:ltr}
 #restoreFile{display:none}
@@ -63,7 +61,6 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
   </g>
 </svg>
 <header><h1>GeoField</h1><p>Geological Field Observation Notebook</p></header>
-<div id="storageStatus" class="storage-status" role="status" aria-live="polite" hidden></div>
 <main>
 <section class="panel">
   <h2>Select Data Section</h2>
@@ -99,7 +96,7 @@ footer{text-align:center;padding:9px 8px 17px;color:#456d73;font-size:11px;direc
   <div id="records"><div class="empty">No observations have been recorded yet.</div></div>
 </section>
 </main>
-<footer>Created by Engineer Roohollah Nikokalam · <a href="./privacy-policy.html">Privacy Policy</a></footer>
+<footer>Created by Engineer Roohollah Nikokalam</footer>
 <script type="module" src="./bundle.js"></script>
 </body>
 </html>
