@@ -49,6 +49,9 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/aapt" dump permissions "$APK" > /tmp/geofield-permissions.txt
           cat /tmp/geofield-permissions.txt
+          BADGING=$("$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/aapt" dump badging "$APK")
+          echo "$BADGING" | grep -q "targetSdkVersion:\x2736\x27" || { echo "APK does not target API 36" >&2; exit 1; }
+          echo "$BADGING" | grep -q "sdkVersion:\x2724\x27" || { echo "APK minimum SDK is not 24" >&2; exit 1; }
           if grep -E 'android.permission.(INTERNET|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION|ACCESS_BACKGROUND_LOCATION|CAMERA|RECORD_AUDIO|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE|READ_MEDIA_IMAGES|READ_MEDIA_VIDEO|READ_MEDIA_AUDIO|READ_MEDIA_VISUAL_USER_SELECTED)' /tmp/geofield-permissions.txt; then
             echo "Forbidden permission found in final APK" >&2
             exit 1
