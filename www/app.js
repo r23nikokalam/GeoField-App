@@ -2,7 +2,6 @@ import * as XLSX from "xlsx";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
-import { Geolocation } from "@capacitor/geolocation";
 import { encryptBackupPayload, decryptBackupPayload, isEncryptedBackup } from "./backup-crypto.js";
 import { buildProjectReport } from "./report-pdf.js";
 import { vocabularyForField } from "./geology-vocabulary.js";
@@ -324,7 +323,6 @@ function setSection(sectionName) {
   saveActiveSection();
   activeSection = sectionName;
   $("fieldsPanel").hidden = false;
-  $("gpsControls").hidden = section.name !== "Coordinate";
   $("sectionTitle").textContent = section.name;
   $("fieldsGrid").innerHTML = section.fields.map(key => {
     const safeId = "field-" + fieldNames.indexOf(key);
@@ -407,8 +405,6 @@ function resetForm() {
   draft = null;
   $("entryForm").reset();
   $("fieldsPanel").hidden = true;
-  $("gpsControls").hidden = true;
-  $("gpsStatus").textContent = "";
   $("fieldsGrid").innerHTML = "";
   $("sectionTitle").textContent = "";
   $("fieldProgress").textContent = "";
@@ -501,13 +497,6 @@ $("editProject").addEventListener("click", () => {
   $("editProjectClient").value = project.client;
   $("editProjectArea").value = project.area;
   $("editProjectDescription").value = project.description;
-  $("editCoordinateSystem").value = project.coordinateSystem || "Unknown";
-  $("editDatum").value = project.datum || "";
-  $("editUtmZone").value = project.utmZone || "";
-  $("editHemisphere").value = project.hemisphere || "";
-  $("editHorizontalUnit").value = project.horizontalUnit || "";
-  $("editVerticalDatum").value = project.verticalDatum || "";
-  $("editElevationUnit").value = project.elevationUnit || "";
   $("projectEditForm").hidden = false;
 });
 $("cancelProjectEdit").addEventListener("click", () => {
@@ -527,13 +516,6 @@ $("projectEditForm").addEventListener("submit", async event => {
       client: $("editProjectClient").value,
       area: $("editProjectArea").value,
       description: $("editProjectDescription").value,
-      coordinateSystem: $("editCoordinateSystem").value,
-      datum: $("editDatum").value,
-      utmZone: $("editUtmZone").value,
-      hemisphere: $("editHemisphere").value,
-      horizontalUnit: $("editHorizontalUnit").value,
-      verticalDatum: $("editVerticalDatum").value,
-      elevationUnit: $("editElevationUnit").value,
       updatedAt: new Date().toISOString()
     });
     const nextWorkspace = validateWorkspace({
@@ -654,44 +636,6 @@ $("sampleList").addEventListener("click", async event => {
     alert("The sample could not be deleted: " + error.message);
   }
 });
-$("gpsCapture").addEventListener("click", async () => {
-  if (!storageReady || activeSection !== "Coordinate") return;
-  const button = $("gpsCapture");
-  const status = $("gpsStatus");
-  button.disabled = true;
-  status.textContent = "Requesting current position…";
-  try {
-    if (Capacitor.isNativePlatform()) {
-      let permission = await Geolocation.checkPermissions();
-      if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
-        permission = await Geolocation.requestPermissions();
-      }
-      if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
-        throw new Error("Location permission was not granted.");
-      }
-    }
-    const position = await Geolocation.getCurrentPosition({
-      enableHighAccuracy: true,
-      timeout: 20000,
-      maximumAge: 0
-    });
-    if (!draft) draft = {};
-    draft.GPS_Latitude = position.coords.latitude.toFixed(7);
-    draft.GPS_Longitude = position.coords.longitude.toFixed(7);
-    draft.GPS_Accuracy_m = Number.isFinite(position.coords.accuracy) ? position.coords.accuracy.toFixed(1) : "";
-    draft.GPS_Altitude_m = Number.isFinite(position.coords.altitude) ? position.coords.altitude.toFixed(1) : "";
-    draft.GPS_Timestamp = new Date(position.timestamp || Date.now()).toISOString();
-    fillActiveSection(draft);
-    status.textContent = "Captured in WGS 84 (EPSG:4326). Accuracy: " +
-      (draft.GPS_Accuracy_m ? draft.GPS_Accuracy_m + " m" : "unknown") +
-      ". Review before saving the observation.";
-  } catch (error) {
-    console.error("GPS capture failed:", error);
-    status.textContent = "Position unavailable: " + (error.message || "Check location services and permissions.");
-  } finally {
-    button.disabled = !storageReady;
-  }
-});
 
 $("sectionList").addEventListener("click", event => {
   if (!storageReady) return;
@@ -776,13 +720,6 @@ $("exportXlsx").addEventListener("click", async () => {
       ["Client", project.client],
       ["Project Area", project.area],
       ["Description", project.description],
-      ["Coordinate System", project.coordinateSystem || "Unknown"],
-      ["Horizontal Datum", project.datum || "Unknown"],
-      ["UTM Zone", project.utmZone || "Unknown"],
-      ["Hemisphere", project.hemisphere || "Unknown"],
-      ["Horizontal Unit", project.horizontalUnit || "Unknown"],
-      ["Vertical Datum", project.verticalDatum || "Unknown"],
-      ["Elevation Unit", project.elevationUnit || "Unknown"],
       ["Created At", project.createdAt],
       ["Last Updated", project.updatedAt],
       ["Exported At", new Date().toISOString()]
