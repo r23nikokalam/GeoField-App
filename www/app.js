@@ -391,7 +391,6 @@ $("clearAll").addEventListener("click", async () => {
 
 async function initializeStorage() {
   setControlsEnabled(false);
-  const status = $("storageStatus");
   try {
     rows = await recordStore.load(normaliseRecord);
     storageReady = true;
@@ -399,9 +398,6 @@ async function initializeStorage() {
     setControlsEnabled(true);
   } catch (error) {
     console.error("GeoField secure storage initialization failed:", error);
-    status.textContent = "Storage initialization failed. Editing is locked to protect your existing data. Do not clear app data or reinstall the app. " + error.message;
-    status.classList.add("storage-error");
-    status.hidden = false;
     storageReady = false;
     setControlsEnabled(false);
   }
