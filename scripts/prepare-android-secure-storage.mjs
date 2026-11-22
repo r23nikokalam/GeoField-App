@@ -56,6 +56,17 @@ if (!activity.includes("registerPlugin(SecureStoragePlugin.class)")) {
 
 if (!fs.existsSync(manifestPath)) throw new Error("AndroidManifest.xml was not found.");
 let manifest = fs.readFileSync(manifestPath, "utf8");
+
+// Capacitor Geolocation requires these declarations before it can request
+// Android runtime permissions for approximate or precise location.
+for (const permission of [
+  "android.permission.ACCESS_COARSE_LOCATION",
+  "android.permission.ACCESS_FINE_LOCATION"
+]) {
+  if (!manifest.includes(`android:name="${permission}"`)) {
+    manifest = manifest.replace(/<application\\b/, `<uses-permission android:name="${permission}" />\\n    <application`);
+  }
+}
 const applicationTag = manifest.match(/<application\b[^>]*>/s);
 if (!applicationTag) throw new Error("Android application manifest tag was not found.");
 if (/android:allowBackup\s*=/.test(applicationTag[0])) {
