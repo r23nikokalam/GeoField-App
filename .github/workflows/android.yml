@@ -1,29 +1,41 @@
-name: Build Android APK
+name: Android validation and Play readiness
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, feature/secure-storage-2026-11 ]
+  pull_request:
+    branches: [ main ]
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts --no-audit
+      - name: Dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Test secure record storage and migration
+        run: npm run test:storage
       - name: Bundle web app
         run: npm run build
       - name: Add Android platform
         run: npx cap add android
+      - name: Configure Google Play Android requirements
+        run: node scripts/prepare-android-play-release.mjs
+      - name: Integrate Android Keystore storage
+        run: node scripts/prepare-android-secure-storage.mjs
       - name: Sync Capacitor
         run: npx cap sync android
       - name: Build debug APK
@@ -31,9 +43,22 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
+      - name: Verify final APK permissions
+        working-directory: android
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/aapt" dump permissions "$APK" > /tmp/geofield-permissions.txt
+          cat /tmp/geofield-permissions.txt
+          BADGING=$("$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/aapt" dump badging "$APK")
+          echo "$BADGING" | grep -Fq "targetSdkVersion:'36'" || { echo "APK does not target API 36" >&2; exit 1; }
+          echo "$BADGING" | grep -Fq "sdkVersion:'24'" || { echo "APK minimum SDK is not 24" >&2; exit 1; }
+          if grep -E 'android.permission.(INTERNET|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION|ACCESS_BACKGROUND_LOCATION|CAMERA|RECORD_AUDIO|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE|READ_MEDIA_IMAGES|READ_MEDIA_VIDEO|READ_MEDIA_AUDIO|READ_MEDIA_VISUAL_USER_SELECTED)' /tmp/geofield-permissions.txt; then
+            echo "Forbidden permission found in final APK" >&2
+            exit 1
+          fi
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: GeoField-debug-apk
+          name: GeoField-secure-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
