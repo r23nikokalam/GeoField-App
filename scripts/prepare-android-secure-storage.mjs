@@ -64,7 +64,7 @@ for (const permission of [
   "android.permission.ACCESS_FINE_LOCATION"
 ]) {
   if (!manifest.includes(`android:name="${permission}"`)) {
-    manifest = manifest.replace(/<application\\b/, `<uses-permission android:name="${permission}" />\\n    <application`);
+    manifest = manifest.replace(/<application\b/, `<uses-permission android:name="${permission}" />\n    <application`);
   }
 }
 const applicationTag = manifest.match(/<application\b[^>]*>/s);
