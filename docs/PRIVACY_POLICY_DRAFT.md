@@ -1,14 +1,13 @@
-# GeoField Privacy Policy — Draft
+# GeoField Privacy Policy
 
-**Status:** Draft for developer review. Do not publish until the developer identity and public policy URL are confirmed.
-
-**Effective date:** To be set on publication  
+**Effective date:** 22 November 2026  
 **Application:** GeoField — Geological Field Observation Notebook  
-**Developer:** The developer identified in the Google Play listing.
+**Developer name used in the Google Play listing:** GeoField  
+**Privacy and support contact:** R23Nikokalam@gmail.com
 
 ## 1. Summary
 
-GeoField is designed to work offline. The app stores geological field records locally on the user's Android device. The app does not require an account and is not designed to transmit observation records to a GeoField-operated server.
+GeoField is designed to work offline. The app stores geological field records locally on the user's Android device. The app does not require an account and does not transmit observation records to a GeoField-operated server.
 
 ## 2. Information processed by the app
 
@@ -18,7 +17,7 @@ On Android, the app encrypts its local record store using AES-256-GCM. The encry
 
 ## 3. Collection, transmission, and sharing
 
-GeoField does not include account registration, advertising, analytics, or a GeoField-operated cloud synchronization service. The app is designed not to send field records or device information to the developer or to third-party servers.
+GeoField does not include account registration, advertising, analytics, or a GeoField-operated cloud synchronization service. The app is configured without the Android Internet permission and is designed not to send field records or device information to the developer or to third-party servers.
 
 When a user explicitly exports an XLSX or JSON file, GeoField creates the file locally and invokes the Android share interface. The user chooses whether and where to save or share that file. Any recipient app or service selected by the user is governed by that provider's own privacy practices.
 
@@ -32,7 +31,7 @@ No method of electronic storage is completely risk-free. Users should protect th
 
 ## 5. Retention and deletion
 
-Records remain on the device until the user deletes individual records, uses the app's delete-all function, clears app data, or uninstalls the app. GeoField does not maintain a separate server-side copy of those records.
+Records remain on the device until the user deletes individual records, uses the app's Delete All function, clears app data, or uninstalls the app. GeoField does not maintain a separate server-side copy of those records.
 
 Exported files are stored or shared through locations and services selected by the user. The user is responsible for managing and deleting those copies.
 
@@ -46,16 +45,6 @@ This policy may be updated when the app's functionality or applicable requiremen
 
 ## 8. Contact
 
-For privacy questions or requests, contact the GeoField developer at:
+For privacy questions or support, contact the GeoField developer:
 
-**Privacy and support email: R23Nikokalam@gmail.com**
-
----
-
-## Publication checklist
-
-- Confirm the legal/developer identity used in the Google Play listing.
-- Publish this policy at a stable, publicly accessible HTTPS URL.
-- Add the policy link or full policy text inside the app.
-- Complete the Play Console Data safety form against the final production binary and all bundled SDKs.
-- Re-check this policy whenever data handling or dependencies change.
+**R23Nikokalam@gmail.com**
