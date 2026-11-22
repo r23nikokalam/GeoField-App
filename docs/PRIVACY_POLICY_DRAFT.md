@@ -1,6 +1,6 @@
 # GeoField Privacy Policy — Draft
 
-**Status:** Draft for developer review. Do not publish until the contact details and public policy URL are confirmed.
+**Status:** Draft for developer review. Do not publish until the developer identity and public policy URL are confirmed.
 
 **Effective date:** To be set on publication  
 **Application:** GeoField — Geological Field Observation Notebook  
@@ -46,15 +46,14 @@ This policy may be updated when the app's functionality or applicable requiremen
 
 ## 8. Contact
 
-For privacy questions or requests, contact the developer through the verified privacy contact published in the Google Play listing:
+For privacy questions or requests, contact the GeoField developer at:
 
-**Privacy contact email: [DEVELOPER MUST PROVIDE A PUBLIC SUPPORT EMAIL BEFORE PUBLICATION]**
+**Privacy and support email: R23Nikokalam@gmail.com**
 
 ---
 
 ## Publication checklist
 
-- Replace the contact placeholder with a monitored public email address.
 - Confirm the legal/developer identity used in the Google Play listing.
 - Publish this policy at a stable, publicly accessible HTTPS URL.
 - Add the policy link or full policy text inside the app.
