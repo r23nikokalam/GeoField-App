@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Android validation and Play readiness
 on:
   workflow_dispatch:
   push:
@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -32,6 +32,8 @@ jobs:
         run: npm run build
       - name: Add Android platform
         run: npx cap add android
+      - name: Configure Google Play Android requirements
+        run: node scripts/prepare-android-play-release.mjs
       - name: Integrate Android Keystore storage
         run: node scripts/prepare-android-secure-storage.mjs
       - name: Sync Capacitor
@@ -41,6 +43,16 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
+      - name: Verify final APK permissions
+        working-directory: android
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/aapt" dump permissions "$APK" > /tmp/geofield-permissions.txt
+          cat /tmp/geofield-permissions.txt
+          if grep -E 'android.permission.(INTERNET|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION|ACCESS_BACKGROUND_LOCATION|CAMERA|RECORD_AUDIO|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE|READ_MEDIA_IMAGES|READ_MEDIA_VIDEO|READ_MEDIA_AUDIO|READ_MEDIA_VISUAL_USER_SELECTED)' /tmp/geofield-permissions.txt; then
+            echo "Forbidden permission found in final APK" >&2
+            exit 1
+          fi
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
