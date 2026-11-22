@@ -13,7 +13,7 @@ if (!fs.existsSync(variablesPath) || !fs.existsSync(manifestPath)) {
 // Capacitor 8 is the supported major line for Android API 36.
 let variables = fs.readFileSync(variablesPath, "utf8");
 for (const [name, value] of [["minSdkVersion", 24], ["compileSdkVersion", 36], ["targetSdkVersion", 36]]) {
-  const pattern = new RegExp("(\\b" + name + "\\s*=\\s*)\\d+");
+  const pattern = new RegExp("(\\\\b" + name + "\\\\s*=\\\\s*)\\\\d+");
   if (!pattern.test(variables)) {
     throw new Error("Could not safely locate " + name + " in variables.gradle.");
   }
@@ -23,7 +23,7 @@ fs.writeFileSync(variablesPath, variables);
 
 let manifest = fs.readFileSync(manifestPath, "utf8");
 
-// This product is intentionally offline and must not request broad device access.
+// GeoField is intentionally offline and must not request broad device access.
 const forbidden = new Set([
   "android.permission.INTERNET",
   "android.permission.ACCESS_FINE_LOCATION",
@@ -40,15 +40,14 @@ const forbidden = new Set([
   "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
 ]);
 
-manifest = manifest.replace(/<uses-permission\\b[^>]*\\bandroid:name\\s*=\\s*["']([^"']+)["'][^>]*\\/?>/g,
+manifest = manifest.replace(/<uses-permission\\\\b[^>]*\\\\bandroid:name\\\\s*=\\\\s*["']([^"']+)["'][^>]*\\\\/?>/g,
   (tag, permission) => forbidden.has(permission) ? "" : tag);
 
-const appTag = manifest.match(/<application\\b[^>]*>/s);
+const appTag = manifest.match(/<application\\\\b[^>]*>/s);
 if (!appTag) throw new Error("Android application element was not found.");
 
 function setAttribute(source, name, value) {
-  const escaped = name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
-  const pattern = new RegExp("\\\\s+" + escaped + "\\\\s*=\\\\s*(['"])[^'"]*\\\\1");
+  const pattern = new RegExp("\\\\s+" + name + '="[^"]*"');
   if (pattern.test(source)) return source.replace(pattern, " " + name + '="' + value + '"');
   return source.replace(/>$/, " " + name + '="' + value + '">');
 }
@@ -63,22 +62,33 @@ fs.writeFileSync(manifestPath, manifest);
 fs.mkdirSync(xmlDir, { recursive: true });
 fs.writeFileSync(path.join(xmlDir, "backup_rules.xml"), `<?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <include domain="root" path="."/>
     <exclude domain="root" path="."/>
+    <exclude domain="file" path="."/>
+    <exclude domain="database" path="."/>
+    <exclude domain="sharedpref" path="."/>
+    <exclude domain="external" path="."/>
 </full-backup-content>
 `);
 fs.writeFileSync(path.join(xmlDir, "data_extraction_rules.xml"), `<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" path="."/>
+        <exclude domain="file" path="."/>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="external" path="."/>
     </cloud-backup>
     <device-transfer>
         <exclude domain="root" path="."/>
+        <exclude domain="file" path="."/>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="external" path="."/>
     </device-transfer>
 </data-extraction-rules>
 `);
 
-const remainingForbidden = [...manifest.matchAll(/<uses-permission\\b[^>]*\\bandroid:name\\s*=\\s*["']([^"']+)["'][^>]*\\/?>/g)]
+const remainingForbidden = [...manifest.matchAll(/<uses-permission\\\\b[^>]*\\\\bandroid:name\\\\s*=\\\\s*["']([^"']+)["'][^>]*\\\\/?>/g)]
   .map(match => match[1]).filter(permission => forbidden.has(permission));
 if (remainingForbidden.length) {
   throw new Error("Forbidden Android permissions remain: " + remainingForbidden.join(", "));
